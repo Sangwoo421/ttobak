@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.clients.mock_backend import MockBackend
+from app.clients.factory import build_backend
 from app.config import AUDIO_CACHE_DIR, get_settings
 from app.providers.factory import build_safe_llm, build_stt_provider, build_tts_provider
 from app.routers import debug, health, session, stt, summary, tts, turn
@@ -24,11 +24,11 @@ app.add_middleware(
 stt_provider, stt_name = build_stt_provider(settings)
 tts_provider, tts_name = build_tts_provider(settings)
 safe_llm = build_safe_llm(settings)
+backend, backend_selection = build_backend(settings)
 
-# BACKEND_MODE=http (real Spring backend) lands with app/clients/backend_client.py; mock is all
-# that exists so far, so it's used regardless of the setting.
 app.state.settings = settings
-app.state.backend = MockBackend(settings)
+app.state.backend = backend
+app.state.backend_selection = backend_selection
 app.state.stt = stt_provider
 app.state.tts = tts_provider
 app.state.llm = safe_llm
