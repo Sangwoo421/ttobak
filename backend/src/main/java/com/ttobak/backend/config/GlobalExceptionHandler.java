@@ -3,6 +3,7 @@ package com.ttobak.backend.config;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -46,9 +47,22 @@ public class GlobalExceptionHandler {
                 .body(ErrorResponse.of(ErrorCode.MALFORMED_REQUEST));
     }
 
-    /** 예상 못한 시스템 장애: ERROR + 전체 스택트레이스. 사용자에게는 정형화된 메시지만. */
+    /**
+     * 그 외 모든 예외. 스프링 프레임워크 자체가 올바른 상태코드를 이미 알고 있는 경우
+     * (org.springframework.web.ErrorResponse 구현체 — 예: 브라우저로 "/", "/favicon.ico" 접속 시의
+     * NoResourceFoundException, 지원 안 하는 HTTP 메서드 등) 는 그 상태코드를 그대로 쓰고 WARN 로 남긴다.
+     * 그게 아니면 진짜 예상 못한 시스템 장애이므로 500 + 전체 스택트레이스를 ERROR 로 남기고,
+     * 사용자에게는 정형화된 메시지만 내려준다.
+     */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> unexpected(Exception e, HttpServletRequest req) {
+        if (e instanceof org.springframework.web.ErrorResponse springError && !springError.getStatusCode().is5xxServerError()) {
+            HttpStatusCode statusCode = springError.getStatusCode();
+            ErrorCode code = statusCode.value() == 404 ? ErrorCode.NOT_FOUND : ErrorCode.BAD_REQUEST;
+            log.warn("[{}] {} {} -> {}: {}", code.getCode(), req.getMethod(), requestLine(req),
+                    e.getClass().getSimpleName(), e.getMessage());
+            return ResponseEntity.status(statusCode).body(ErrorResponse.of(code));
+        }
         log.error("[{}] {} {} -> unexpected {}", ErrorCode.INTERNAL_ERROR.getCode(),
                 req.getMethod(), requestLine(req), e.getClass().getName(), e);
         return ResponseEntity.status(ErrorCode.INTERNAL_ERROR.getStatus())
