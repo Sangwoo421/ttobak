@@ -34,6 +34,13 @@ class Settings(BaseSettings):
     anthropic_api_key: str | None = None
     anthropic_llm_model: str = "claude-opus-5"
 
+    # ---- Google Gemini (the key the team actually holds) ----
+    gemini_api_key: str | None = None
+    gemini_stt_model: str = "gemini-3.5-transcribe"
+    gemini_tts_model: str = "gemini-3.1-flash-tts-preview"
+    gemini_llm_model: str = "gemini-3.5-flash"
+    gemini_tts_voice: str = "Kore"
+
     # ---- voice layer parameters ----
     senior_silence_ms: int = 2000
     baseline_silence_ms: int = 700
@@ -48,7 +55,7 @@ class Settings(BaseSettings):
     backend_mode: str = "http"  # http | mock
     examples_dir: str | None = None  # override for docs/contracts/examples (mock backend)
 
-    @field_validator("openai_api_key", "anthropic_api_key", mode="before")
+    @field_validator("openai_api_key", "anthropic_api_key", "gemini_api_key", mode="before")
     @classmethod
     def _blank_key_is_none(cls, v):
         if v is None:
