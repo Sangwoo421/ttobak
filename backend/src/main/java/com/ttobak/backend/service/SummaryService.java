@@ -207,7 +207,7 @@ public class SummaryService {
         String status;
         if (!core.isEmpty() && core.stream().allMatch(SummaryItemRow::isHandled)) {
             status = "DONE";
-        } else if (items.stream().anyMatch(SummaryItemRow::isHandled)) {
+        } else if (core.stream().anyMatch(SummaryItemRow::isHandled)) {
             status = "IN_PROGRESS";
         } else {
             status = "OPEN";
