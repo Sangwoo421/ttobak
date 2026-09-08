@@ -56,6 +56,8 @@ export function useConversation() {
     onStarted?.(resp)
     if (playBriefing) await player.play(resp.briefing?.audio_url)
     session.briefingEnded()
+    // 읽어주고 나면 바로 듣는다. 어르신이 말하려고 버튼을 또 누르게 하지 않는다.
+    if (resp.ui?.listen && autoListen.value && !ended.value) await startListening()
     return resp
   }
 
