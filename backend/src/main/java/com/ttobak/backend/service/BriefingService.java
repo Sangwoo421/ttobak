@@ -4,7 +4,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import com.ttobak.backend.config.NotFoundException;
+import com.ttobak.backend.config.BusinessException;
+import com.ttobak.backend.config.ErrorCode;
 import com.ttobak.backend.domain.BriefingItem;
 import com.ttobak.backend.domain.BriefingResponse;
 import com.ttobak.backend.domain.BriefingRow;
@@ -31,7 +32,7 @@ public class BriefingService {
     public BriefingResponse briefing(long userId) {
         auth.assertUser(userId);
         User user = transactions.findUser(userId)
-                .orElseThrow(() -> new NotFoundException("user " + userId + " not found"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND, "user " + userId + " not found"));
 
         List<Counterparty> counterparties = transactions.findCounterparties(userId);
         List<BriefingRow> rows = transactions.findUnheardNotifications(userId, MAX_ITEMS);
@@ -50,7 +51,7 @@ public class BriefingService {
 
     public void markHeard(long notificationId) {
         if (!transactions.markNotificationHeard(notificationId)) {
-            throw new NotFoundException("notification " + notificationId + " not found");
+            throw new BusinessException(ErrorCode.NOTIFICATION_NOT_FOUND, "notification " + notificationId + " not found");
         }
     }
 }

@@ -34,7 +34,9 @@ export const useSessionStore = defineStore('session', {
 
   actions: {
     reset() {
+      const silenceOverride = this.silenceOverride
       this.$reset()
+      this.silenceOverride = silenceOverride
     },
 
     pushMessage(role, text, tone = 'friendly') {

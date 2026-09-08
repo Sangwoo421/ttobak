@@ -4,7 +4,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.clients.factory import build_backend
+from app.clients.backend_client import BackendClient
+from app.clients.mock_backend import MockBackend
 from app.config import AUDIO_CACHE_DIR, get_settings
 from app.providers.factory import build_safe_llm, build_stt_provider, build_tts_provider
 from app.routers import debug, health, session, stt, summary, tts, turn
@@ -24,11 +25,21 @@ app.add_middleware(
 stt_provider, stt_name = build_stt_provider(settings)
 tts_provider, tts_name = build_tts_provider(settings)
 safe_llm = build_safe_llm(settings)
-backend, backend_selection = build_backend(settings)
+
+def _build_backend(cfg):
+    """BACKEND_MODE=http -> real Spring backend, anything else -> examples/*.json.
+
+    Constructing BackendClient does not connect, so a backend that is down still lets the AI server
+    boot; /ai/health reports reachability and the call itself raises BackendUnavailable. Falling back
+    to MockBackend here would serve a different user's transactions as if they were real.
+    """
+    if cfg.backend_mode == "http":
+        return BackendClient(cfg)
+    return MockBackend(cfg)
+
 
 app.state.settings = settings
-app.state.backend = backend
-app.state.backend_selection = backend_selection
+app.state.backend = _build_backend(settings)
 app.state.stt = stt_provider
 app.state.tts = tts_provider
 app.state.llm = safe_llm

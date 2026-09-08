@@ -1,22 +1,21 @@
-"""HTTP client for the Spring backend (BACKEND_MODE=http).
+"""Talks to the real Spring backend over HTTP (BACKEND_MODE=http).
 
-Same method surface as app/clients/mock_backend.MockBackend, so app.state.backend can be either
-one and nothing downstream cares. Calls the endpoints in docs/contracts/openapi-backend.yaml at
-settings.backend_base_url.
+Same surface as MockBackend so main.py can swap one for the other.
 
-Design rules (from the AI-server side, senior demo):
-- Short timeouts. A slow or dead backend must never make a dialog turn hang for seconds.
-- A failed call never raises into a request handler — the data methods return a safe, empty-shaped
-  fallback (mirroring what MockBackend would give for "nothing there").
-- Failures are NOT swallowed silently: every one is logged AND recorded on the client
-  (`error_count`, `last_error`, `last_error_at`), which GET /ai/health reads and reports.
-- No money-moving endpoint exists in the contract and none is called here.
+Two failure policies, on purpose:
+
+* **Essential reads/writes** (`get_briefing`, `get_counterparties`, `create_summary`) raise
+  `BackendUnavailable`. They must not silently fall back to `MockBackend`: the examples describe a
+  different user with different transactions, so serving them while the real backend is down would
+  put wrong money on screen and read it out loud. An error the operator can see beats a demo that
+  lies. The deliberate fallback is `BACKEND_MODE=mock`, chosen by a human.
+* **Side effects** (`mark_heard`, `create_mute_rule`, `create_dialog_log`) and `get_classification`
+  never raise. Losing a "heard" flag or a log line must not end a conversation mid-turn, and
+  `get_classification` already has a caller-side default (`... or cls` in state_machine).
 """
 from __future__ import annotations
 
 import logging
-import time
-from typing import Any
 
 import httpx
 
@@ -26,136 +25,82 @@ logger = logging.getLogger(__name__)
 
 
 class BackendUnavailable(RuntimeError):
-    """Raised only by ping()/probe helpers. The data methods never raise — they degrade."""
+    """The Spring backend could not answer a call the conversation cannot continue without."""
 
 
-_EMPTY_BRIEFING = {"user_name": "", "items": [], "remaining_count": 0}
+class BackendClient:
+    def __init__(self, settings: Settings, timeout: float = 5.0) -> None:
+        self._base = settings.backend_base_url.rstrip("/")
+        self._client = httpx.Client(base_url=self._base, timeout=timeout)
 
+    @property
+    def base_url(self) -> str:
+        return self._base
 
-class HttpBackendClient:
-    # Reads sit on the dialog hot path — keep them near-instant.
-    _CONNECT_TIMEOUT = 1.5
-    _READ_TIMEOUT = 2.5
-    _WRITE_TIMEOUT = 4.0
-    _PING_TIMEOUT = 1.5
+    # ------------------------------------------------------------------ plumbing
 
-    def __init__(self, settings: Settings) -> None:
-        self.base_url = settings.backend_base_url.rstrip("/")
-        self._http = httpx.Client(
-            base_url=self.base_url,
-            timeout=httpx.Timeout(self._READ_TIMEOUT, connect=self._CONNECT_TIMEOUT),
-            headers={"accept": "application/json"},
-            follow_redirects=True,
-        )
-        self.error_count = 0
-        self.last_error: str | None = None
-        self.last_error_at: float | None = None
-        self.last_ok_at: float | None = None
-
-    # ------------------------------------------------------------------ health
-    def ping(self) -> dict:
-        """GET /api/health with a tight timeout. Raise BackendUnavailable on any failure."""
+    def _request(self, method: str, path: str, **kwargs) -> httpx.Response:
         try:
-            resp = self._http.get("/api/health", timeout=httpx.Timeout(self._PING_TIMEOUT, connect=1.0))
-            resp.raise_for_status()
-        except Exception as exc:  # noqa: BLE001 - normalize every failure mode to one type
-            self._mark_error("GET /api/health", exc)
-            raise BackendUnavailable(str(exc)) from exc
-        self._mark_ok()
-        body = resp.json() if resp.content else {}
-        return body if isinstance(body, dict) else {"status": str(body)}
+            response = self._client.request(method, path, **kwargs)
+        except httpx.HTTPError as exc:
+            raise BackendUnavailable(f"{method} {path}: {exc}") from exc
+        if response.status_code >= 400:
+            raise BackendUnavailable(f"{method} {path}: HTTP {response.status_code} {response.text[:200]}")
+        return response
 
-    def stats(self) -> dict:
-        return {
-            "base_url": self.base_url,
-            "error_count": self.error_count,
-            "last_error": self.last_error,
-            "last_error_at": _iso(self.last_error_at),
-            "last_ok_at": _iso(self.last_ok_at),
-        }
+    def _json(self, method: str, path: str, **kwargs):
+        response = self._request(method, path, **kwargs)
+        if response.status_code == 204 or not response.content:
+            return None
+        return response.json()
 
-    # ------------------------------------------------------------------- reads
+    def _best_effort(self, method: str, path: str, **kwargs) -> dict:
+        """Side effects: log and carry on. The conversation matters more than the bookkeeping."""
+        try:
+            self._request(method, path, **kwargs)
+            return {"status": "ok"}
+        except BackendUnavailable as exc:
+            logger.warning("backend call failed, continuing: %s", exc)
+            return {"status": "skipped", "reason": str(exc)}
+
+    # ------------------------------------------------------------------ essential
+
     def get_briefing(self, user_id: int) -> dict:
-        data, ok = self._request("GET", f"/api/users/{user_id}/briefing")
-        if ok and isinstance(data, dict):
-            return data
-        return {"user_id": user_id, **_EMPTY_BRIEFING}
+        return self._json("GET", f"/api/users/{user_id}/briefing")
 
     def get_counterparties(self, user_id: int) -> list[dict]:
-        data, ok = self._request("GET", f"/api/users/{user_id}/counterparties")
-        return data if ok and isinstance(data, list) else []
+        return self._json("GET", f"/api/users/{user_id}/counterparties") or []
+
+    def create_summary(self, payload: dict) -> dict:
+        return self._json("POST", "/api/summaries", json=payload)
+
+    # ------------------------------------------------------------------ tolerant
 
     def get_classification(self, transaction_id: int) -> dict | None:
-        data, ok = self._request(
-            "GET", f"/api/transactions/{transaction_id}/classification", allow_404=True
-        )
-        return data if ok and isinstance(data, dict) else None
-
-    # ------------------------------------------------------------------ writes
-    def create_summary(self, payload: dict) -> dict:
-        data, ok = self._request("POST", "/api/summaries", json=payload, timeout=self._WRITE_TIMEOUT)
-        return data if ok and isinstance(data, dict) else {}
+        try:
+            return self._json("GET", f"/api/transactions/{transaction_id}/classification")
+        except BackendUnavailable as exc:
+            logger.warning("classification unavailable for tx %s: %s", transaction_id, exc)
+            return None
 
     def mark_heard(self, notification_id: int) -> None:
-        self._request(
-            "POST", f"/api/notifications/{notification_id}/heard", timeout=self._WRITE_TIMEOUT
-        )
+        self._best_effort("POST", f"/api/notifications/{notification_id}/heard")
 
     def create_mute_rule(self, payload: dict) -> dict:
-        data, ok = self._request("POST", "/api/mute-rules", json=payload, timeout=self._WRITE_TIMEOUT)
-        if ok and isinstance(data, dict):
-            return data
-        return {"status": "ok" if ok else "error"}
+        return self._best_effort("POST", "/api/mute-rules", json=payload)
 
     def create_dialog_log(self, payload: dict) -> dict:
-        data, ok = self._request("POST", "/api/dialog-logs", json=payload, timeout=self._WRITE_TIMEOUT)
-        if ok and isinstance(data, dict):
-            return data
-        return {"status": "ok" if ok else "error"}
+        return self._best_effort("POST", "/api/dialog-logs", json=payload)
 
-    # --------------------------------------------------------------- internals
-    def _request(
-        self,
-        method: str,
-        path: str,
-        *,
-        json: Any | None = None,
-        timeout: float | None = None,
-        allow_404: bool = False,
-    ) -> tuple[Any, bool]:
-        """-> (parsed_body_or_None, ok). ok=False means the call failed and was recorded."""
+    # ------------------------------------------------------------------ lifecycle
+
+    def ping(self) -> bool:
+        """Used by /ai/health to report whether the backend is actually reachable right now."""
         try:
-            resp = self._http.request(method, path, json=json, timeout=timeout or self._READ_TIMEOUT)
-            if allow_404 and resp.status_code == 404:
-                self._mark_ok()
-                return None, True
-            resp.raise_for_status()
-        except Exception as exc:  # noqa: BLE001 - one turn must not die on a backend hiccup
-            self._mark_error(f"{method} {path}", exc)
-            return None, False
-        self._mark_ok()
-        if resp.status_code == 204 or not resp.content:
-            return None, True
-        try:
-            return resp.json(), True
-        except ValueError:
-            logger.warning("backend %s %s returned non-JSON body; treating as empty", method, path)
-            return None, True
-
-    def _mark_ok(self) -> None:
-        self.last_ok_at = time.time()
-
-    def _mark_error(self, what: str, exc: Exception) -> None:
-        self.error_count += 1
-        self.last_error = f"{what} -> {type(exc).__name__}: {exc}"
-        self.last_error_at = time.time()
-        logger.warning("backend call failed (%d total): %s", self.error_count, self.last_error)
+            self._request("GET", "/api/health")
+            return True
+        except BackendUnavailable:
+            return False
 
     def close(self) -> None:
-        self._http.close()
-
-
-def _iso(ts: float | None) -> str | None:
-    if ts is None:
-        return None
-    return time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(ts))
+        self._client.close()
