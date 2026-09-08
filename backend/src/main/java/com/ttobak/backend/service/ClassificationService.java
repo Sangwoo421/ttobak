@@ -2,7 +2,8 @@ package com.ttobak.backend.service;
 
 import java.util.List;
 
-import com.ttobak.backend.config.NotFoundException;
+import com.ttobak.backend.config.BusinessException;
+import com.ttobak.backend.config.ErrorCode;
 import com.ttobak.backend.domain.Classification;
 import com.ttobak.backend.domain.Counterparty;
 import com.ttobak.backend.domain.Transaction;
@@ -20,7 +21,7 @@ public class ClassificationService {
 
     public Classification classify(long transactionId) {
         Transaction tx = transactions.findTransaction(transactionId)
-                .orElseThrow(() -> new NotFoundException("transaction " + transactionId + " not found"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.TRANSACTION_NOT_FOUND, "transaction " + transactionId + " not found"));
         return classify(tx, transactions.findCounterpartiesByAccount(tx.getAccountId()));
     }
 
