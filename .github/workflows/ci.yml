@@ -31,8 +31,7 @@ jobs:
           LLM_PROVIDER: stub
         run: |
           pip install -r requirements.txt
-          python -m pytest -q; code=$?
-          [ $code -eq 0 ] || [ $code -eq 5 ]   # 5 = 아직 테스트 없음
+          python -m pytest -q
 
   frontend:
     runs-on: ubuntu-latest
