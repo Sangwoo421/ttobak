@@ -2,10 +2,11 @@
 import { http, USE_MOCK } from './http'
 import { mockAi } from './mock'
 
-/** POST /ai/session/start → SessionStartResponse */
-export async function startSession({ user_id = 1, notification_id = null, mode = 'layered' } = {}) {
+/** POST /ai/session/start → SessionStartResponse
+ *  transaction_id 를 주면 세 건을 다 읽지 않고 그 거래 한 건만 읽고 설명한다 (어르신 모드 내역 탭). */
+export async function startSession({ user_id = 1, notification_id = null, transaction_id = null, mode = 'layered' } = {}) {
   if (USE_MOCK) return mockAi.sessionStart()
-  const { data } = await http.post('/ai/session/start', { user_id, notification_id, mode })
+  const { data } = await http.post('/ai/session/start', { user_id, notification_id, transaction_id, mode })
   return data
 }
 

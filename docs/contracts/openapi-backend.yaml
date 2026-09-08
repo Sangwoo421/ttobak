@@ -51,6 +51,25 @@ paths:
       responses:
         "204": { description: 기록됨 }
 
+  /api/users/{user_id}/transactions:
+    get:
+      tags: [briefing]
+      summary: 최근 거래 목록 (어르신 모드 홈·내역 화면용)
+      description: |
+        브리핑과 다르다. 브리핑은 미청취 알림만 최대 3건 주므로 한 번 들으면 비어 버린다.
+        내역 화면은 들었든 안 들었든 최근 거래를 그대로 보여줘야 해서 별도 경로가 필요하다.
+        응답은 BriefingItem 과 같은 모양이고 notification_id 만 null 이다(알림이 아니라 거래에서 출발).
+        조회 전용이다.
+      parameters:
+        - { name: user_id, in: path, required: true, schema: { type: integer }, example: 1 }
+        - { name: limit, in: query, required: false, schema: { type: integer, default: 10, maximum: 50 } }
+      responses:
+        "200":
+          description: 최근순 거래와 분류 결과
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/BriefingItem" } }
+
   /api/users/{user_id}/counterparties:
     get:
       tags: [counterparties]

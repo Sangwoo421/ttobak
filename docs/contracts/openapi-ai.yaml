@@ -48,6 +48,14 @@ paths:
               properties:
                 user_id: { type: integer, example: 1 }
                 notification_id: { type: integer, nullable: true, description: 눌러서 들어온 알림. 없어도 됨 }
+                transaction_id:
+                  type: integer
+                  nullable: true
+                  description: >
+                    어르신 모드 내역에서 거래 한 건을 눌러 들어온 경우. 세 건을 다 읽지 않고 그 건만
+                    읽고 설명한다. 브리핑(미청취)에 없는 이미 들은 거래도 되며, 그때는 백엔드의
+                    GET /api/users/{id}/transactions 에서 찾는다. 확인 불가 거래면 state 가
+                    OFFER_ADD_QUESTION 으로 온다.
                 mode: { type: string, enum: [layered, baseline], default: layered, description: 측정용. baseline 은 레이어 미적용 }
       responses:
         "200":
@@ -242,6 +250,11 @@ components:
           properties:
             buttons: { type: array, items: { $ref: "#/components/schemas/Button" } }
             silence_ms: { type: integer, example: 2000, description: 프론트 VAD 침묵 대기값 }
+            listen:
+              type: boolean
+              description: >
+                읽어준 뒤 바로 마이크를 켤지. 항상 true 로 보낸다. 버튼을 눌러야 말할 수 있게 하면
+                이 사용자층에는 탭이 한 번 더 늘어난다. 시끄러운 곳에서는 프론트 개발자 패널에서 끈다.
 
     Action:
       type: object
