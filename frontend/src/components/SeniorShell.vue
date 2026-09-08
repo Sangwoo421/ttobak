@@ -9,7 +9,8 @@ import { useConversation } from '@/composables/useConversation'
 // 입장에서는 둘 다 "이 화면에서 나가기"라 구분이 안 되고 policy §6 의 "한 화면에 버튼 3개
 // 이하"도 넘겼다. 대화를 끝내는 "그만"은 음성과 대화 중 큰 버튼으로 그대로 남아 있다.
 defineProps({
-  title: { type: String, default: '또박또박' },
+  // 제목은 서비스 이름이 아니라 '지금 이 화면에서 뭘 하는지'를 말한다.
+  title: { type: String, default: '물어보기' },
   back: { type: Boolean, default: true },
 })
 const conv = useConversation()
@@ -38,8 +39,13 @@ function holdEnd() {
 <template>
   <div class="shell senior">
     <header class="top">
+      <!-- 화살표는 글자(←) 대신 SVG 로 그린다. 글자는 폰트마다 글리프가 em 박스 안에서
+           치우쳐 있어 버튼 정중앙에 오지 않는다. -->
       <button v-if="back" type="button" class="back" aria-label="홈으로 돌아가기" @click="goHome">
-        <span aria-hidden="true">←</span>
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M15 5 L8 12 L15 19" fill="none" stroke="currentColor"
+                stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
       </button>
       <h1
         class="title"
@@ -86,15 +92,21 @@ function holdEnd() {
   width: 52px;
   height: 52px;
   flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 14px;
   border: 2px solid rgba(0, 0, 0, 0.28);
   background: rgba(255, 255, 255, 0.85);
   color: #1b1b1b;
-  font-size: 26px;
-  font-weight: 900;
-  line-height: 1;
   padding: 0;
   cursor: pointer;
+}
+
+.back svg {
+  width: 26px;
+  height: 26px;
+  display: block;
 }
 
 .back:active {
@@ -167,7 +179,11 @@ function holdEnd() {
   .back {
     width: 46px;
     height: 46px;
-    font-size: 22px;
+  }
+
+  .back svg {
+    width: 23px;
+    height: 23px;
   }
 }
 </style>

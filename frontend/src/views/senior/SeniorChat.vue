@@ -77,7 +77,7 @@ async function sendText() {
 </script>
 
 <template>
-  <SeniorShell :title="isConfirm ? '확인해 주세요' : '또박또박'">
+  <SeniorShell :title="isConfirm ? '확인해 주세요' : '물어보기'">
     <ToneFrame :tone="session.tone">
       <div class="chat">
         <!-- 브리핑한 3건 (CONFIRM 톤에서는 숨겨 화면을 단순하게) -->
