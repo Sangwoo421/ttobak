@@ -71,6 +71,10 @@ class BackendClient:
     def get_counterparties(self, user_id: int) -> list[dict]:
         return self._json("GET", f"/api/users/{user_id}/counterparties") or []
 
+    def get_transactions(self, user_id: int, limit: int = 10) -> list[dict]:
+        """청취 여부와 무관한 최근 거래. 브리핑은 미청취 3건뿐이라 내역 화면에는 쓸 수 없다."""
+        return self._json("GET", f"/api/users/{user_id}/transactions", params={"limit": limit}) or []
+
     def create_summary(self, payload: dict) -> dict:
         return self._json("POST", "/api/summaries", json=payload)
 

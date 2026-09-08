@@ -8,4 +8,14 @@
         WHERE id = #{id}
     </select>
 
+    <select id="findRecentByUser" resultType="com.ttobak.backend.domain.Transaction">
+        SELECT t.id, t.account_id, t.type, t.amount, t.counterparty_name, t.memo, t.channel,
+               t.occurred_at, t.counterparty_id
+        FROM transactions t
+                 JOIN accounts a ON a.id = t.account_id
+        WHERE a.user_id = #{userId}
+        ORDER BY t.occurred_at DESC, t.id DESC
+        LIMIT #{limit}
+    </select>
+
 </mapper>

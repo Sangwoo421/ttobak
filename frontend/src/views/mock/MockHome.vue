@@ -1,7 +1,9 @@
 <script setup>
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { won } from '@/utils/format'
 import { useAudioPlayer } from '@/composables/useAudioPlayer'
+import SeniorHome from './SeniorHome.vue'
 
 // KB스타뱅킹 느낌의 정적 홈 목업. 위쪽 푸시 알림 배너를 누르면 어르신 모드 브리핑으로 들어간다.
 // (담당 조태석) 시연 1단계. 여기서는 어떤 API 도 부르지 않는다.
@@ -31,10 +33,25 @@ function openChat() {
   player.unlock()
   router.push({ path: '/senior/chat', query: { start: 'true' } })
 }
+
+// 어르신 모드는 앱의 모드다. 같은 데이터가 다른 방식으로 보인다.
+const seniorMode = ref(false)
+
+// 이체·조회·카드처럼 기존 앱이 이미 하는 일은 만들지 않는다(기획서 "적용 형태").
+// 다만 아무 반응이 없으면 덜 만든 것처럼 보이므로, 경계라는 사실을 화면이 직접 말한다.
+const notice = ref('')
+let noticeTimer = null
+function outOfScope(label) {
+  notice.value = `${label}는 기존 KB스타뱅킹 기능이라 이번 프로토타입에서는 만들지 않았어요.`
+  clearTimeout(noticeTimer)
+  noticeTimer = setTimeout(() => { notice.value = '' }, 2600)
+}
 </script>
 
 <template>
-  <div class="kb-home">
+  <SeniorHome v-if="seniorMode" :account="account" @exit="seniorMode = false" />
+
+  <div v-else class="kb-home">
     <!-- 푸시 알림 배너 -->
     <button type="button" class="push" @click="openBriefing">
       <span class="app-icon">KB</span>
@@ -47,7 +64,7 @@ function openChat() {
 
     <header class="kb-top">
       <span class="logo"><span class="star">★</span>KB스타뱅킹</span>
-      <span class="bell">🔔</span>
+      <button type="button" class="senior-toggle" @click="seniorMode = true">👵 어르신 모드</button>
     </header>
 
     <section class="balance">
@@ -55,8 +72,8 @@ function openChat() {
       <div class="acc-no">{{ account.number }}</div>
       <div class="acc-balance">{{ won(account.balance) }}</div>
       <div class="acc-actions">
-        <button type="button">이체</button>
-        <button type="button">내역</button>
+        <button type="button" @click="outOfScope('이체')">이체</button>
+        <button type="button" @click="outOfScope('내역 조회')">내역</button>
       </div>
     </section>
 
@@ -72,7 +89,7 @@ function openChat() {
     </section>
 
     <section class="quick">
-      <button v-for="q in quick" :key="q.label" type="button" class="quick-btn">
+      <button v-for="q in quick" :key="q.label" type="button" class="quick-btn" @click="outOfScope(q.label)">
         <span class="q-icon">{{ q.icon }}</span>
         <span>{{ q.label }}</span>
       </button>
@@ -92,10 +109,15 @@ function openChat() {
     <div class="spacer" />
 
     <nav class="tabbar">
-      <button v-for="(t, i) in tabs" :key="t" type="button" :class="{ on: i === 0 }">{{ t }}</button>
+      <button v-for="(t, i) in tabs" :key="t" type="button" :class="{ on: i === 0 }"
+              @click="i === 0 ? null : outOfScope(t)">{{ t }}</button>
     </nav>
 
     <router-link class="staff-link" to="/staff">직원 화면 →</router-link>
+
+    <transition name="fade">
+      <p v-if="notice" class="scope-notice">{{ notice }}</p>
+    </transition>
   </div>
 </template>
 
@@ -415,4 +437,35 @@ function openChat() {
   color: #aaa;
   text-decoration: none;
 }
+/* 어르신 모드 진입. 기획서의 "기존 앱 안의 부가 모드" 전제가 화면에서 보여야 한다. */
+.senior-toggle {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 2px solid #6b4e00;
+  border-radius: 999px;
+  background: #fff8e1;
+  font-size: 15px;
+  font-weight: 800;
+  color: #6b4e00;
+  cursor: pointer;
+}
+.senior-toggle:active { background: #ffe9a8; }
+
+/* 만들지 않은 기존 앱 기능을 눌렀을 때. 침묵보다 경계를 밝히는 편이 낫다. */
+.scope-notice {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 84px;
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: rgba(27, 27, 27, 0.92);
+  color: #fff;
+  font-size: 15px;
+  line-height: 1.45;
+  text-align: center;
+}
+.fade-enter-active, .fade-leave-active { transition: opacity 0.18s ease; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
 </style>

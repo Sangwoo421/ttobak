@@ -9,6 +9,14 @@ export async function getBriefing(user_id = 1) {
   return data
 }
 
+/** GET /api/users/{id}/transactions → BriefingItem[] (청취 여부와 무관한 최근 거래)
+ *  브리핑은 미청취 3건뿐이라 한 번 들으면 비어 버린다. 홈·내역 화면은 이쪽을 쓴다. */
+export async function getTransactions(user_id = 1, limit = 10) {
+  if (USE_MOCK) return (await mockBackend.briefing()).items.slice(0, limit)
+  const { data } = await http.get(`/api/users/${user_id}/transactions`, { params: { limit } })
+  return data
+}
+
 /** GET /api/summaries/{id} → Summary */
 export async function getSummary(summary_id) {
   if (USE_MOCK) return mockBackend.getSummary(summary_id)
