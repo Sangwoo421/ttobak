@@ -13,7 +13,14 @@ const label = computed(() => ({ idle: '눌러서 말하기', listening: '다 말
 </script>
 
 <template>
-  <button type="button" class="mic-btn" :class="[status, size]" :disabled="disabled || status === 'processing'" @click="$emit('click')">
+  <button
+    type="button"
+    class="mic-btn"
+    :class="[status, size]"
+    :disabled="disabled || status === 'processing'"
+    :aria-label="label"
+    @click="$emit('click')"
+  >
     <span class="icon" aria-hidden="true">
       <svg viewBox="0 0 24 24" width="36" height="36" fill="currentColor">
         <path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z" />
@@ -47,6 +54,11 @@ const label = computed(() => ({ idle: '눌러서 말하기', listening: '다 말
 
 .mic-btn:disabled {
   opacity: 0.5;
+}
+
+.mic-btn:focus-visible {
+  outline: 5px solid #1a56b0;
+  outline-offset: 3px;
 }
 
 .mic-btn.listening {

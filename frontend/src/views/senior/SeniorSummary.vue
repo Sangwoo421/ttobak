@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import SeniorShell from '@/components/SeniorShell.vue'
+import ToneFrame from '@/components/ToneFrame.vue'
 import BigButton from '@/components/BigButton.vue'
 import SummaryCard from '@/components/SummaryCard.vue'
 import { getSummary, getSummaryStatus } from '@/api/backend'
@@ -24,7 +25,10 @@ const summary = ref(null)
 const status = ref(null)
 const error = ref('')
 const done = ref(false)
+const doneAudioUrl = ref(null)
 let timer = null
+let polling = false
+let active = true
 
 async function load() {
   error.value = ''
@@ -36,24 +40,42 @@ async function load() {
 }
 
 async function poll() {
+  if (!active || polling || done.value) return
+  polling = true
   try {
     const s = await getSummaryStatus(route.params.id)
+    if (!active) return
     status.value = s
+    if (summary.value) summary.value = { ...summary.value, status: s.status }
     if (s.status === 'DONE' && !done.value) {
       done.value = true
       stopPolling()
       await load()
-      const { audio_url } = await tts(DONE_TEXT, 'friendly')
-      await player.play(audio_url)
+      if (!active) return
+      try {
+        const { audio_url } = await tts(DONE_TEXT, 'friendly')
+        doneAudioUrl.value = audio_url
+        if (active) await player.play(audio_url)
+      } catch (e) {
+        console.warn('[summary] 완료 음성 재생 실패', e)
+      }
     }
   } catch (e) {
     console.warn('[summary] status 폴링 실패', e)
+  } finally {
+    polling = false
+    if (active && !done.value) timer = setTimeout(poll, POLL_MS)
   }
 }
 
 function stopPolling() {
-  if (timer) clearInterval(timer)
+  if (timer) clearTimeout(timer)
   timer = null
+}
+
+async function replay() {
+  if (done.value && doneAudioUrl.value) return player.play(doneAudioUrl.value)
+  return conv.replayLast()
 }
 
 function goHome() {
@@ -63,36 +85,41 @@ function goHome() {
 
 onMounted(async () => {
   await load()
-  await poll()
-  if (!done.value) timer = setInterval(poll, POLL_MS)
+  if (active) await poll()
 })
 
-onUnmounted(stopPolling)
+onUnmounted(() => {
+  active = false
+  stopPolling()
+  player.stop()
+})
 </script>
 
 <template>
   <SeniorShell title="창구 요약서" @stop="goHome">
-    <div class="page">
-      <div v-if="done" class="done">
-        <div class="done-icon">✓</div>
-        <p>{{ DONE_TEXT }}</p>
+    <ToneFrame :tone="done ? 'friendly' : 'confirm'">
+      <div class="page">
+        <div v-if="done" class="done" role="status" aria-live="assertive">
+          <div class="done-icon" aria-hidden="true">✓</div>
+          <p>{{ DONE_TEXT }}</p>
+        </div>
+        <p v-else class="lead">창구에서 이 화면을 보여주세요.</p>
+
+        <div v-if="error" class="error-box" role="alert">
+          <p>{{ error }}</p>
+          <BigButton kind="secondary" @click="load">다시 불러오기</BigButton>
+        </div>
+
+        <SummaryCard v-if="summary" :summary="summary" size="senior" />
+
+        <p v-if="status" class="muted small" role="status">처리 {{ status.handled_count }} / {{ status.total_count }} · {{ statusLabel(status.status) }}</p>
+
+        <div class="buttons">
+          <BigButton kind="secondary" @click="replay">다시 들려주세요</BigButton>
+          <BigButton kind="primary" @click="goHome">처음으로</BigButton>
+        </div>
       </div>
-      <p v-else class="lead">창구에서 이 화면을 보여주세요.</p>
-
-      <div v-if="error" class="error-box">
-        <p>{{ error }}</p>
-        <BigButton kind="secondary" @click="load">다시 불러오기</BigButton>
-      </div>
-
-      <SummaryCard v-if="summary" :summary="summary" size="senior" />
-
-      <p v-if="status" class="muted small">처리 {{ status.handled_count }} / {{ status.total_count }} · {{ statusLabel(status.status) }}</p>
-
-      <div class="buttons">
-        <BigButton kind="secondary" @click="conv.replayLast()">다시 들려주세요</BigButton>
-        <BigButton kind="primary" @click="goHome">처음으로</BigButton>
-      </div>
-    </div>
+    </ToneFrame>
   </SeniorShell>
 </template>
 
@@ -134,7 +161,7 @@ onUnmounted(stopPolling)
 }
 
 .small {
-  font-size: 18px;
+  font-size: var(--senior-font);
   text-align: center;
 }
 
