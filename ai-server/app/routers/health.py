@@ -2,21 +2,25 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Request
 
+from app.clients.backend_client import BackendClient
 from app.clients.mock_backend import MockBackend
 
 router = APIRouter()
 
 
 def _backend_status(backend: object, backend_mode: str) -> str:
-    """What is actually wired, not what .env asked for.
+    """What is actually wired and reachable, not what .env asked for.
 
-    There is no app/clients/backend_client.py yet, so app.state.backend is always a MockBackend.
-    When BACKEND_MODE=http the config and reality disagree — say so instead of parroting 'http'.
+    For the http client this pings /api/health, so a backend that is configured but down reads as
+    'http (unreachable ...)' rather than a green 'http' that only means the object was constructed.
     """
+    if isinstance(backend, BackendClient):
+        base = backend.base_url
+        return f"http ({base})" if backend.ping() else f"http (unreachable: {base})"
     if isinstance(backend, MockBackend):
         if backend_mode == "mock":
             return "mock"
-        return f"mock (no http client; BACKEND_MODE={backend_mode})"
+        return f"mock (BACKEND_MODE={backend_mode})"
     return type(backend).__name__
 
 
