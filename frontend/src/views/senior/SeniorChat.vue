@@ -68,11 +68,6 @@ watch(
   { immediate: true },
 )
 
-function onStop() {
-  if (conv.ended.value || !session.hasSession) return router.push('/mock/home')
-  conv.pressButton('STOP')
-}
-
 async function sendText() {
   const text = typedText.value.trim()
   if (!text || disabled.value) return
@@ -82,7 +77,7 @@ async function sendText() {
 </script>
 
 <template>
-  <SeniorShell :title="isConfirm ? '확인해 주세요' : '또박또박'" @stop="onStop">
+  <SeniorShell :title="isConfirm ? '확인해 주세요' : '또박또박'">
     <ToneFrame :tone="session.tone">
       <div class="chat">
         <!-- 브리핑한 3건 (CONFIRM 톤에서는 숨겨 화면을 단순하게) -->
