@@ -1,6 +1,7 @@
 package com.ttobak.backend.service;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import com.ttobak.backend.config.NotFoundException;
@@ -34,6 +35,7 @@ public class BriefingService {
 
         List<Counterparty> counterparties = transactions.findCounterparties(userId);
         List<BriefingRow> rows = transactions.findUnheardNotifications(userId, MAX_ITEMS);
+        Collections.reverse(rows);
         int unheardTotal = transactions.countUnheardNotifications(userId);
 
         List<BriefingItem> items = new ArrayList<>();
