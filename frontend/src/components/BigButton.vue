@@ -43,6 +43,11 @@ defineEmits(['click'])
   cursor: not-allowed;
 }
 
+.big-btn:focus-visible {
+  outline: 5px solid #1a56b0;
+  outline-offset: 3px;
+}
+
 .big-btn.primary {
   background: var(--primary);
   color: var(--primary-text);
