@@ -1,0 +1,7 @@
+[
+  { "id": 1, "name": "김철수", "relation": "아들", "kind": "PERSON", "bank_name": "KB국민은행", "account_number_masked": "9876-54-****98", "aliases": ["아들", "철수", "큰아들", "우리 아들"], "category": null },
+  { "id": 2, "name": "김영희", "relation": "딸", "kind": "PERSON", "bank_name": "신한은행", "account_number_masked": "110-123-****89", "aliases": ["딸", "영희", "우리 딸"], "category": null },
+  { "id": 3, "name": "박민수", "relation": "손자", "kind": "PERSON", "bank_name": "카카오뱅크", "account_number_masked": "3333-01-****67", "aliases": ["손자", "민수"], "category": null },
+  { "id": 4, "name": "한국전력공사", "relation": "자동이체", "kind": "INSTITUTION", "bank_name": null, "account_number_masked": null, "aliases": ["한전", "전기세", "전기요금"], "category": "전기요금" },
+  { "id": 5, "name": "국민연금공단", "relation": "정기입금", "kind": "INSTITUTION", "bank_name": null, "account_number_masked": null, "aliases": ["연금", "국민연금"], "category": "연금" }
+]

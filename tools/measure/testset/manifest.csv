@@ -1,0 +1,15 @@
+file,speaker,expected_text,expected_intent,expected_entity,notes
+demo_03_first_what.wav,팀원A,첫 번째 거 그게 뭐야,ASK_ABOUT_TX,TX:101,중간에 1초 쉼
+demo_04_third_what.wav,팀원A,세 번째 그 정보통신인가 그건 뭐야,ASK_ABOUT_TX,TX:103,고유명사 흐림
+demo_06_transfer_son.wav,팀원B,아들이 뭐 보내라는데 이십만 원인가,REQUEST_TRANSFER,CP:1,웅얼거림
+demo_08_mumble.wav,팀원B,으음 그 저기,UNKNOWN,,의도 없음 → CLARIFY 가 정답
+s01_how_much_second.wav,팀원C,두 번째 건 얼마 나간 거야,ASK_AMOUNT,TX:102,
+s02_who_sent.wav,팀원C,누가 보낸 거야 첫 번째,ASK_WHO,TX:101,어순 도치
+s03_repeat.wav,팀원D,못 들었어 다시 한 번,REPEAT,,
+s04_go_counter.wav,팀원D,은행 가서 할게 정리해줘,GO_COUNTER,,
+s05_daughter_50.wav,팀원E,우리 딸한테 오만 원만 부쳐줘,REQUEST_TRANSFER,CP:2,별칭 "우리 딸"
+s06_grandson.wav,팀원E,손자 민수 삼만 원,REQUEST_TRANSFER,CP:3,동사 생략
+s07_hanjeon.wav,팀원A,한전인가 그거 왜 나갔어,ASK_ABOUT_TX,TX:102,별칭 "한전"
+s08_stop.wav,팀원B,그만 됐어,STOP,,
+s09_mute.wav,팀원C,전기세는 매번 안 들어도 돼,MUTE_ITEM,TX:102,
+s10_dialect_son.wav,팀원D,아들내미한테 돈 좀 넣어주소 십만 원,REQUEST_TRANSFER,CP:1,사투리

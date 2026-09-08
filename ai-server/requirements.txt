@@ -1,0 +1,12 @@
+fastapi>=0.115
+uvicorn[standard]>=0.30
+pydantic>=2
+pydantic-settings>=2
+python-dotenv
+httpx
+python-multipart
+rapidfuzz
+openai>=1.50
+anthropic
+pytest
+pytest-asyncio

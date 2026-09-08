@@ -1,0 +1,200 @@
+// 어르신 대화 오케스트레이션: 세션 스토어 + 녹음기 + 플레이어 + 라우터를 묶는다.
+// 브리핑/대화 화면이 같은 인스턴스를 쓰도록 모듈 싱글턴 상태를 갖는다.
+//
+// 턴 1개의 흐름:  입력(음성/버튼/선택지/타이핑) → /ai/turn → 말풍선 + 음성 재생
+//                → 재생 끝 → actions 처리 → ui.listen 이면 마이크 자동 시작
+import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
+import { useSessionStore } from '@/stores/session'
+import { useRecorder, RECORDER_DEFAULTS } from './useRecorder'
+import { useAudioPlayer } from './useAudioPlayer'
+import { errorMessage } from '@/api/http'
+
+const busy = ref(false) // STT/턴 요청 진행 중
+const ended = ref(false) // END 액션을 받았다
+const toast = ref('')
+const hint = ref('') // 마이크 안내 문구 (예: 잘 못 들었어요)
+const autoListen = ref(true) // ui.listen 자동 마이크 (시끄러운 곳에서 끌 수 있다)
+const vadThreshold = ref(RECORDER_DEFAULTS.threshold)
+const showDebug = ref(false)
+const devOpen = ref(false)
+
+let toastTimer = null
+let routerRef = null
+
+function showToast(text, ms = 2500) {
+  toast.value = text
+  clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => (toast.value = ''), ms)
+}
+
+export function useConversation() {
+  const session = useSessionStore()
+  const recorder = useRecorder()
+  const player = useAudioPlayer()
+  // useRouter 는 setup 안에서만 동작 → 처음 setup 에서 잡아 두고 이후 재사용
+  const r = useRouter()
+  if (r) routerRef = r
+
+  /** 마이크 상태 표시용 */
+  const micStatus = computed(() => {
+    if (recorder.status.value === 'listening') return 'listening'
+    if (recorder.status.value === 'processing' || busy.value || session.pending) return 'processing'
+    if (player.playing.value) return 'speaking'
+    return 'idle'
+  })
+
+  const canInteract = computed(() => !busy.value && !session.pending && recorder.status.value === 'idle')
+
+  /** 세션 시작 + 브리핑 재생. onStarted 는 세션이 생긴 직후(재생 전), resolve 는 재생이 끝난 뒤 (state → LISTENING) */
+  async function begin({ onStarted, ...opts } = {}) {
+    ended.value = false
+    hint.value = ''
+    player.stop()
+    if (recorder.status.value === 'listening') recorder.cancel()
+    const resp = await session.start(opts)
+    onStarted?.(resp)
+    await player.play(resp.briefing?.audio_url)
+    session.briefingEnded()
+    return resp
+  }
+
+  /** 마지막 브리핑/응답 음성을 다시 재생 (서버 턴 없이) */
+  async function replayLast() {
+    const url = session.lastTurn?.audio_url || session.briefing?.audio_url
+    if (url) await player.play(url)
+  }
+
+  /** 턴 응답 공통 후처리 */
+  async function afterTurn(resp) {
+    if (!resp) return
+    await player.play(resp.audio_url)
+    for (const action of resp.actions || []) {
+      switch (action.type) {
+        case 'OPEN_SUMMARY': {
+          const id = action.payload?.summary_id
+          if (id != null) routerRef?.push(`/senior/summary/${id}`)
+          return
+        }
+        case 'END':
+          ended.value = true
+          return
+        case 'ADD_QUESTION':
+        case 'ADD_REQUEST':
+          showToast('창구 목록에 적어뒀어요')
+          break
+        case 'MUTE':
+          showToast('다음부터는 읽지 않을게요')
+          break
+        default:
+          break
+      }
+    }
+    if (resp.ui?.listen && autoListen.value && !ended.value) {
+      await startListening()
+    }
+  }
+
+  async function runTurn(promise) {
+    busy.value = true
+    hint.value = ''
+    try {
+      const resp = await promise
+      busy.value = false
+      if (resp === null) {
+        // STT 가 빈 문자열
+        hint.value = '잘 못 들었어요. 마이크를 누르고 다시 말씀해 주세요.'
+        return null
+      }
+      await afterTurn(resp)
+      return resp
+    } catch (e) {
+      busy.value = false
+      hint.value = errorMessage(e)
+      console.error('[turn]', e)
+      return null
+    }
+  }
+
+  function interrupt() {
+    player.stop()
+    if (recorder.status.value === 'listening') recorder.cancel()
+  }
+
+  /** 버튼 (ASK_MORE / GO_COUNTER / STOP / YES / NO / REPEAT) */
+  function pressButton(button_id) {
+    interrupt()
+    return runTurn(session.sendButton(button_id))
+  }
+
+  /** CLARIFY 선택지 */
+  function pickChoice(choice_id) {
+    interrupt()
+    return runTurn(session.sendChoice(choice_id))
+  }
+
+  /** 타이핑 텍스트 (개발 패널) */
+  function sendTypedText(text) {
+    if (!text || !text.trim()) return Promise.resolve(null)
+    interrupt()
+    return runTurn(session.sendText(text.trim()))
+  }
+
+  /** 오디오 파일/Blob (개발 패널 "녹음 클립 입력 모드") */
+  function sendAudioBlob(blob) {
+    interrupt()
+    return runTurn(session.sendAudio(blob))
+  }
+
+  /** 마이크 시작 → VAD 로 자동 종료 → STT → 턴 */
+  async function startListening() {
+    if (recorder.status.value !== 'idle' || busy.value || session.pending || ended.value) return
+    player.stop()
+    hint.value = ''
+    let result
+    try {
+      result = await recorder.record({ silenceMs: session.effectiveSilenceMs, threshold: vadThreshold.value })
+    } catch (e) {
+      hint.value = e.message || String(e)
+      return
+    }
+    if (!result) return // cancel 됨
+    if (!result.speechDetected || result.durationMs < RECORDER_DEFAULTS.minMs) {
+      hint.value = '말소리를 못 들었어요. 마이크를 누르고 말씀해 주세요.'
+      return
+    }
+    await runTurn(session.sendAudio(result.blob))
+  }
+
+  /** 마이크 버튼: 듣는 중이면 바로 끝내고 보내기, 아니면 듣기 시작 */
+  function toggleMic() {
+    if (recorder.status.value === 'listening') recorder.stop()
+    else startListening()
+  }
+
+  return {
+    session,
+    recorder,
+    player,
+    micStatus,
+    canInteract,
+    busy,
+    ended,
+    toast,
+    hint,
+    autoListen,
+    vadThreshold,
+    showDebug,
+    devOpen,
+    begin,
+    replayLast,
+    pressButton,
+    pickChoice,
+    sendTypedText,
+    sendAudioBlob,
+    startListening,
+    toggleMic,
+    interrupt,
+    showToast,
+  }
+}

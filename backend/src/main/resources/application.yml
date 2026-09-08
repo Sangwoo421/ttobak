@@ -1,0 +1,33 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: ttobak-backend
+  datasource:
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:ttobak}?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    username: ${MYSQL_USER:ttobak}
+    password: ${MYSQL_PASSWORD:ttobak}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+    time-zone: Asia/Seoul
+    default-property-inclusion: always
+    serialization:
+      write-dates-as-timestamps: false
+
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+    jdbc-type-for-null: NULL
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+
+logging:
+  level:
+    com.ttobak.backend: INFO

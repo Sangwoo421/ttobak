@@ -1,0 +1,48 @@
+# secrets
+.env
+.env.*
+!.env.example
+
+# node
+node_modules/
+dist/
+.vite/
+
+# java / gradle
+backend/build/
+backend/.gradle/
+backend/out/
+*.class
+*.jar
+!backend/gradle/wrapper/gradle-wrapper.jar
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+
+# ai-server runtime
+ai-server/audio_cache/
+tools/measure/results/
+
+# ide / os
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# 원본 제출 자료(팀 공유용, 저장소에는 넣지 않음)
+*.docx
+*.jpg
+*.jpeg
+*.png
+!docs/assets/**
+
+# AI 코딩 규칙 파일은 로컬 전용 (팀 결정)
+CLAUDE.md
+**/CLAUDE.md
+.claude/

@@ -1,0 +1,15 @@
+{
+  "transaction_id": 103,
+  "level": "UNKNOWN",
+  "rule_id": "R5_UNKNOWN",
+  "spoken_name": "'대한정보통신'이라는 곳",
+  "facts": [
+    "통장에 '대한정보통신'이라고 적혀 있습니다.",
+    "금액은 19,000원입니다.",
+    "오늘 아침에 나갔습니다.",
+    "자동이체로 나갔습니다."
+  ],
+  "unknowns": ["무엇에 대한 돈인지", "누가 청구했는지"],
+  "counter_hint": "'대한정보통신' 19,000원 오늘 출금이 무엇인지",
+  "counterparty": null
+}

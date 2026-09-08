@@ -1,0 +1,57 @@
+{
+  "id": 2,
+  "code": "482913",
+  "ticket_no": 12,
+  "branch_name": "KB국민은행 종로지점",
+  "status": "OPEN",
+  "user_id": 1,
+  "user_name": "김영자",
+  "created_at": "2026-09-08T14:32:10",
+  "items": [
+    {
+      "id": 10,
+      "section": "REQUEST",
+      "ordinal": 1,
+      "payload": {
+        "type": "TRANSFER",
+        "recipient_counterparty_id": 1,
+        "recipient_name": "김철수",
+        "recipient_relation": "아들",
+        "recipient_bank": "KB국민은행",
+        "recipient_account_masked": "9876-54-****98",
+        "amount": 200000,
+        "note": "아들이 보내라고 함",
+        "confirmed_by_user": true
+      },
+      "handled": false,
+      "handled_at": null
+    },
+    {
+      "id": 11,
+      "section": "QUESTION",
+      "ordinal": 1,
+      "payload": {
+        "transaction_id": 103,
+        "text": "'대한정보통신' 19,000원 오늘 출금이 무엇인지"
+      },
+      "handled": false,
+      "handled_at": null
+    },
+    {
+      "id": 12,
+      "section": "PREP",
+      "ordinal": 1,
+      "payload": { "item": "신분증", "required": true },
+      "handled": false,
+      "handled_at": null
+    },
+    {
+      "id": 13,
+      "section": "PREP",
+      "ordinal": 2,
+      "payload": { "item": "통장 또는 카드", "required": false },
+      "handled": false,
+      "handled_at": null
+    }
+  ]
+}

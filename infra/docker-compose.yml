@@ -1,0 +1,76 @@
+# 또박또박 로컬 인프라
+#   DB만:    docker compose -f infra/docker-compose.yml up -d mysql
+#   전체:    docker compose -f infra/docker-compose.yml --profile full up --build
+#   초기화:  docker compose -f infra/docker-compose.yml down -v   (시드를 다시 넣고 싶을 때)
+# 환경변수는 셸 또는 `--env-file .env` 로 전달. 없으면 아래 기본값.
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: ttobak-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-ttobak}
+      MYSQL_USER: ${MYSQL_USER:-ttobak}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-ttobak}
+      TZ: Asia/Seoul
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-time-zone=+09:00
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - ../docs/contracts/seed-data.sql:/docker-entrypoint-initdb.d/01-seed.sql:ro
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD:-root}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    build: ../backend
+    container_name: ttobak-backend
+    profiles: ["full"]
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-ttobak}
+      MYSQL_USER: ${MYSQL_USER:-ttobak}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-ttobak}
+      TZ: Asia/Seoul
+    ports:
+      - "8080:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  ai-server:
+    build: ../ai-server
+    container_name: ttobak-ai
+    profiles: ["full"]
+    env_file:
+      - path: ../.env
+        required: false
+    environment:
+      BACKEND_BASE_URL: http://backend:8080
+      BACKEND_MODE: ${BACKEND_MODE:-http}
+      TZ: Asia/Seoul
+    ports:
+      - "8000:8000"
+    depends_on:
+      - backend
+
+  frontend:
+    build: ../frontend
+    container_name: ttobak-web
+    profiles: ["full"]
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+      - ai-server
+
+volumes:
+  mysql-data:

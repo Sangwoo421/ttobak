@@ -1,0 +1,23 @@
+{
+  "user_id": 1,
+  "session_id": "sess_demo_0001",
+  "branch_name": null,
+  "requests": [
+    {
+      "type": "TRANSFER",
+      "recipient_counterparty_id": 1,
+      "recipient_name": "김철수",
+      "recipient_relation": "아들",
+      "recipient_bank": "KB국민은행",
+      "amount": 200000,
+      "note": "아들이 보내라고 함",
+      "confirmed_by_user": true
+    }
+  ],
+  "questions": [
+    {
+      "transaction_id": 103,
+      "text": "'대한정보통신' 19,000원 오늘 출금이 무엇인지"
+    }
+  ]
+}
