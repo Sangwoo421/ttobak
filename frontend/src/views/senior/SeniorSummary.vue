@@ -80,7 +80,7 @@ async function replay() {
 
 function goHome() {
   player.stop()
-  router.push('/mock/home')
+  router.push('/senior/home')
 }
 
 onMounted(async () => {

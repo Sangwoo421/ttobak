@@ -40,9 +40,10 @@ function onButton(id) {
 }
 
 function onStop() {
-  if (!session.hasSession) return router.push('/mock/home')
+  if (!session.hasSession) return router.push('/senior/home')
+  if (conv.stopping.value) return // 이미 그만 처리 중이면 중복 클릭 무시
   conv.pressButton('STOP')
-  router.push('/senior/chat')
+  router.push('/senior/chat') // 처리 결과(정리 중 → 처음으로 화면)는 SeniorChat 이 보여준다
 }
 </script>
 
