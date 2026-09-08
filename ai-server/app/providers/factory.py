@@ -1,28 +1,55 @@
 """Provider selection (by Settings) + SafeLLM, the try/except wrapper app/core/state_machine.py calls as ctx.llm.
 
-Only the stub providers exist right now (openai_provider.py / anthropic_llm.py land later without
-changing this module's callers): the build_* functions already branch on settings so wiring a real
-provider in later is a matter of adding a branch, not touching main.py or the routers.
+build_* pick the Gemini provider (app/providers/gemini_provider.py) when settings.gemini_api_key is
+set, and fall back to the stub providers when it is not — or when constructing the real provider
+raises. /ai/health reports the choice per capability via app.state.provider_names. Gemini's STT/TTS
+models are previews that rate-limit, so the Gemini providers themselves also degrade to stub output
+on a per-call failure; the demo must never die on the wire.
 """
 from __future__ import annotations
+
+import logging
 
 from app.config import Settings
 from app.providers.base import LLMProvider, STTProvider, TTSProvider
 from app.providers.stub_provider import StubLLMProvider, StubSTTProvider, StubTTSProvider
 
+logger = logging.getLogger(__name__)
+
 
 def build_stt_provider(settings: Settings) -> tuple[STTProvider, str]:
-    # TODO: settings.openai_api_key -> OpenAI STT (not implemented in this pass)
+    if settings.gemini_api_key:
+        try:
+            from app.providers.gemini_provider import GeminiSTTProvider
+
+            return GeminiSTTProvider(settings.gemini_api_key, settings.gemini_stt_model), "gemini"
+        except Exception as exc:  # noqa: BLE001 - wiring must never crash startup; stub keeps the app up
+            logger.warning("Gemini STT unavailable (%s); using stub", exc)
     return StubSTTProvider(), "stub"
 
 
 def build_tts_provider(settings: Settings) -> tuple[TTSProvider, str]:
-    # TODO: settings.openai_api_key -> OpenAI TTS (not implemented in this pass)
+    if settings.gemini_api_key:
+        try:
+            from app.providers.gemini_provider import GeminiTTSProvider
+
+            return (
+                GeminiTTSProvider(settings.gemini_api_key, settings.gemini_tts_model, settings.gemini_tts_voice),
+                "gemini",
+            )
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Gemini TTS unavailable (%s); using stub", exc)
     return StubTTSProvider(), "stub"
 
 
 def build_llm_provider(settings: Settings) -> tuple[LLMProvider, str]:
-    # TODO: settings.llm_provider == "openai" | "anthropic" -> real provider (not implemented in this pass)
+    if settings.gemini_api_key:
+        try:
+            from app.providers.gemini_provider import GeminiLLMProvider
+
+            return GeminiLLMProvider(settings.gemini_api_key, settings.gemini_llm_model), "gemini"
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Gemini LLM unavailable (%s); using stub", exc)
     return StubLLMProvider(), "stub"
 
 

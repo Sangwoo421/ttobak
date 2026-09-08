@@ -210,7 +210,7 @@ public class ClassificationRuleEngine {
             return "아침";
         }
         if (h >= 11 && h < 17) {
-            return "낮";
+            return "오후";
         }
         if (h >= 17 && h < 21) {
             return "저녁";

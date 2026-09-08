@@ -9,5 +9,6 @@ python-multipart
 rapidfuzz
 openai>=1.50
 anthropic
+google-genai>=1.40
 pytest
 pytest-asyncio
