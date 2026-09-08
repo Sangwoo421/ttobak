@@ -98,12 +98,14 @@ function when(tx) {
         class="s-row"
         @click="readOne(it)"
       >
+        <!-- 목록에는 통장에 찍히는 이름을 쓴다. spoken_name("'대한정보통신'이라는 곳")은 읽어줄 때의 말이라
+             한 줄에 넣으면 줄바꿈이 지저분해진다. -->
         <span class="s-row-main">
-          <span class="s-row-top">
-            <b>{{ it.classification.spoken_name || it.transaction.counterparty_name }}</b>
+          <b class="s-row-name">{{ it.transaction.counterparty_name }}</b>
+          <span class="s-row-sub">
+            {{ when(it.transaction) }}
             <LevelBadge :level="it.classification.level" />
           </span>
-          <span class="s-row-sub">{{ when(it.transaction) }}</span>
         </span>
         <span class="s-row-right">
           <span class="s-amt" :class="it.transaction.type">
@@ -117,55 +119,93 @@ function when(tx) {
 </template>
 
 <style scoped>
-.senior-home { background: #fffdf5; min-height: 100%; padding-bottom: 24px; }
+.senior-home {
+  background: #fffdf5;
+  min-height: 100%;
+  padding-bottom: 28px;
+  display: flex;
+  flex-direction: column;
+}
 
+/* 헤더와 잔액은 한 덩어리로 보이게 해서 "모드가 바뀌었다"가 첫눈에 읽히게 한다 */
 .s-top {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 18px 18px 12px; background: #ffbc00;
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+  padding: 20px 18px 10px;
+  background: linear-gradient(180deg, #ffc61a 0%, #ffbc00 100%);
 }
-.s-mode { font-size: 15px; font-weight: 800; color: #6b4e00; }
-.s-name { font-size: 24px; font-weight: 800; color: #1b1b1b; margin-top: 2px; }
+.s-mode {
+  display: inline-block; font-size: 14px; font-weight: 800; color: #6b4e00;
+  background: rgba(255, 255, 255, 0.6); border-radius: 999px; padding: 3px 10px;
+}
+.s-name { font-size: 25px; font-weight: 900; color: #1b1b1b; margin-top: 6px; letter-spacing: -0.4px; }
 .s-off {
-  min-height: 48px; padding: 0 16px; border: 2px solid #6b4e00; border-radius: 12px;
-  background: #fff; font-size: 17px; font-weight: 700; color: #6b4e00; cursor: pointer;
+  flex: none; min-height: 46px; padding: 0 15px;
+  border: 2px solid rgba(107, 78, 0, 0.55); border-radius: 999px;
+  background: rgba(255, 255, 255, 0.85);
+  font-size: 16px; font-weight: 800; color: #6b4e00; cursor: pointer;
+}
+.s-off:active { background: #fff; }
+
+.s-balance {
+  padding: 4px 18px 24px;
+  background: linear-gradient(180deg, #ffbc00 0%, #ffb800 100%);
+}
+.s-label { font-size: 18px; font-weight: 800; color: #6b4e00; }
+.s-amount {
+  font-size: 42px; font-weight: 900; letter-spacing: -1.5px; margin-top: 2px;
+  color: #1b1b1b; line-height: 1.1;
 }
 
-.s-balance { padding: 20px 18px; background: #ffbc00; }
-.s-label { font-size: 19px; font-weight: 700; color: #6b4e00; }
-.s-amount { font-size: 40px; font-weight: 900; letter-spacing: -1px; margin-top: 4px; color: #1b1b1b; }
-
-.s-actions { display: grid; gap: 12px; padding: 18px; }
+/* 카드가 잔액 위로 살짝 올라타 보이게 해서 화면에 깊이를 준다 */
+.s-actions {
+  display: grid; gap: 12px; padding: 0 16px;
+  margin-top: -14px; position: relative; z-index: 1;
+}
 .s-act {
   display: flex; align-items: center; gap: 14px; width: 100%;
   min-height: 84px; padding: 14px 16px; text-align: left;
-  border: 3px solid #d8d2c0; border-radius: 16px; background: #fff; cursor: pointer;
+  border: 2px solid #e6dfc9; border-radius: 18px; background: #fff; cursor: pointer;
+  box-shadow: 0 4px 14px rgba(90, 70, 0, 0.1);
+  transition: transform 0.08s ease;
 }
-.s-act.primary { border-color: #ffbc00; background: #fff8e1; }
-.s-act .ico { font-size: 32px; flex: none; }
-.s-act .txt { display: flex; flex-direction: column; gap: 3px; }
-.s-act b { font-size: 23px; font-weight: 800; color: #1b1b1b; }
-.s-act small { font-size: 16px; color: #5f5a4e; }
+.s-act:active { transform: scale(0.985); }
+.s-act.primary { border-color: #ffbc00; background: linear-gradient(180deg, #fffaeb 0%, #fff4d1 100%); }
+.s-act .ico {
+  font-size: 26px; flex: none; width: 52px; height: 52px; border-radius: 16px;
+  background: #fff3cd; display: flex; align-items: center; justify-content: center;
+}
+.s-act.primary .ico { background: #ffd766; }
+.s-act .txt { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.s-act b { font-size: 22px; font-weight: 900; color: #1b1b1b; letter-spacing: -0.3px; }
+.s-act small { font-size: 15px; color: #6b6455; }
 
-.s-list { padding: 6px 18px 0; }
-.s-list h3 { font-size: 23px; font-weight: 800; margin: 10px 0 4px; }
-.s-help { font-size: 16px; color: #5f5a4e; margin: 0 0 12px; }
-.s-msg { font-size: 18px; color: #5f5a4e; }
+.s-list { padding: 22px 16px 0; }
+.s-list h3 { font-size: 23px; font-weight: 900; margin: 0 0 3px; letter-spacing: -0.4px; }
+.s-help { font-size: 15px; color: #6b6455; margin: 0 0 14px; }
+.s-msg { font-size: 18px; color: #6b6455; padding: 8px 2px; }
 .s-msg.err { color: #b3261e; }
 
 .s-row {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  width: 100%; min-height: 80px; padding: 14px 16px; margin-bottom: 10px;
-  border: 3px solid #e6e0cf; border-radius: 16px; background: #fff;
+  width: 100%; min-height: 82px; padding: 14px 16px; margin-bottom: 10px;
+  border: 2px solid #ece5d2; border-radius: 18px; background: #fff;
   text-align: left; cursor: pointer;
+  box-shadow: 0 2px 8px rgba(90, 70, 0, 0.06);
+  transition: transform 0.08s ease, background 0.12s ease;
 }
-.s-row:active { background: #fff3cd; }
-.s-row-main { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-.s-row-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.s-row-top b { font-size: 21px; font-weight: 800; color: #1b1b1b; }
-.s-row-sub { font-size: 16px; color: #5f5a4e; }
-.s-row-right { display: flex; align-items: center; gap: 10px; flex: none; }
-.s-amt { font-size: 20px; font-weight: 800; }
+.s-row:active { background: #fff8e1; transform: scale(0.99); }
+.s-row-main { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.s-row-name {
+  font-size: 20px; font-weight: 900; color: #1b1b1b; letter-spacing: -0.3px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.s-row-sub { display: flex; align-items: center; gap: 8px; font-size: 15px; color: #7a7466; }
+.s-row-right { display: flex; align-items: center; gap: 12px; flex: none; }
+.s-amt { font-size: 19px; font-weight: 900; letter-spacing: -0.3px; }
 .s-amt.IN { color: #1558d6; }
 .s-amt.OUT { color: #1b1b1b; }
-.s-speaker { font-size: 26px; }
+.s-speaker {
+  font-size: 20px; width: 42px; height: 42px; border-radius: 50%;
+  background: #fff3cd; display: flex; align-items: center; justify-content: center;
+}
 </style>

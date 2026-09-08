@@ -128,7 +128,6 @@ function outOfScope(label) {
   min-height: 100%;
   flex: 1;
   background: #f5f5f3;
-  padding-bottom: 70px;
   position: relative;
 }
 
@@ -404,11 +403,11 @@ function outOfScope(label) {
   flex: 1;
 }
 
+/* 프레임 안에서 스크롤되므로 absolute 로는 내용을 따라 올라간다. sticky 로 바닥에 붙인다. */
 .tabbar {
-  position: absolute;
-  left: 0;
-  right: 0;
+  position: sticky;
   bottom: 0;
+  z-index: 4;
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   background: #fff;
@@ -430,9 +429,8 @@ function outOfScope(label) {
 }
 
 .staff-link {
-  position: absolute;
-  right: 12px;
-  bottom: 56px;
+  align-self: flex-end;
+  margin: 0 12px 6px;
   font-size: 11px;
   color: #aaa;
   text-decoration: none;
@@ -453,11 +451,10 @@ function outOfScope(label) {
 
 /* 만들지 않은 기존 앱 기능을 눌렀을 때. 침묵보다 경계를 밝히는 편이 낫다. */
 .scope-notice {
-  position: absolute;
-  left: 16px;
-  right: 16px;
-  bottom: 84px;
-  margin: 0;
+  position: sticky;
+  bottom: 62px;
+  z-index: 5;
+  margin: 0 16px -46px; /* 탭바 위에 떠 보이되 레이아웃을 밀지 않는다 */
   padding: 14px 16px;
   border-radius: 12px;
   background: rgba(27, 27, 27, 0.92);
