@@ -34,7 +34,7 @@ const REQUEST_TYPE = { TRANSFER: '보내기(이체)' }
     </header>
 
     <!-- 1. 창구에서 하려던 일 -->
-    <section>
+    <section class="request-section">
       <h2>창구에서 하려던 일</h2>
       <p v-if="!requests.length" class="muted">없음</p>
       <div v-for="item in requests" :key="item.id" class="item" :class="{ handled: item.handled }">
@@ -42,7 +42,10 @@ const REQUEST_TYPE = { TRANSFER: '보내기(이체)' }
           <input type="checkbox" :checked="item.handled" @change="emit('toggle', item, $event.target.checked)" />
         </label>
         <div class="body">
-          <div class="title">{{ REQUEST_TYPE[item.payload.type] || item.payload.type }}</div>
+          <div class="title-row">
+            <div class="title">{{ REQUEST_TYPE[item.payload.type] || item.payload.type }}</div>
+            <span v-if="checkable" class="item-state">{{ item.handled ? '처리 완료' : '확인 필요' }}</span>
+          </div>
           <dl>
             <dt>받는 사람</dt>
             <dd>{{ item.payload.recipient_name }}</dd>
@@ -64,7 +67,7 @@ const REQUEST_TYPE = { TRANSFER: '보내기(이체)' }
     </section>
 
     <!-- 2. 창구에서 여쭤볼 것 -->
-    <section>
+    <section class="question-section">
       <h2>창구에서 여쭤볼 것</h2>
       <p v-if="!questions.length" class="muted">없음</p>
       <div v-for="item in questions" :key="item.id" class="item" :class="{ handled: item.handled }">
@@ -72,14 +75,17 @@ const REQUEST_TYPE = { TRANSFER: '보내기(이체)' }
           <input type="checkbox" :checked="item.handled" @change="emit('toggle', item, $event.target.checked)" />
         </label>
         <div class="body">
-          <div class="title">{{ item.payload.text }}</div>
+          <div class="title-row">
+            <div class="title">{{ item.payload.text }}</div>
+            <span v-if="checkable" class="item-state">{{ item.handled ? '처리 완료' : '확인 필요' }}</span>
+          </div>
           <div v-if="item.payload.transaction_id" class="muted sub">거래 #{{ item.payload.transaction_id }}</div>
         </div>
       </div>
     </section>
 
     <!-- 3. 준비물 -->
-    <section>
+    <section class="prep-section">
       <h2>준비물</h2>
       <p v-if="!preps.length" class="muted">없음</p>
       <ul class="preps">
@@ -175,11 +181,30 @@ section h2 {
 
 .body {
   flex: 1;
+  min-width: 0;
 }
 
 .title {
   font-weight: 800;
   margin-bottom: 6px;
+}
+
+.title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.item-state {
+  flex: none;
+  padding: 4px 7px;
+  border-radius: 999px;
+  background: #fff1df;
+  color: #b36500;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
 }
 
 dl {
@@ -197,6 +222,7 @@ dt {
 dd {
   margin: 0;
   font-weight: 700;
+  overflow-wrap: anywhere;
 }
 
 dd.amount {
@@ -225,6 +251,11 @@ dd.amount {
 
 /* 직원 화면: 보통 크기 */
 .summary-card.staff {
+  width: auto;
+  max-width: none;
+  margin: 0 16px;
+  padding: 0;
+  gap: 0;
   font-size: 15px;
 }
 
@@ -233,7 +264,135 @@ dd.amount {
 }
 
 .summary-card.staff section h2 {
-  font-size: 17px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 12px;
+  padding: 0;
+  border: 0;
+  font-size: 16px;
+  letter-spacing: -0.02em;
+}
+
+.summary-card.staff section {
+  padding: 20px 0;
+  border: 0;
+  border-top: 1px solid #d9dde3;
+  border-radius: 0;
+  background: #fff;
+  box-shadow: none;
+}
+
+.summary-card.staff section h2::before {
+  width: 4px;
+  height: 18px;
+  border-radius: 999px;
+  background: #758bf3;
+  content: '';
+}
+
+.summary-card.staff .question-section h2::before {
+  background: #3e9ee6;
+}
+
+.summary-card.staff .prep-section h2::before {
+  background: #38aa87;
+}
+
+.summary-card.staff .item {
+  gap: 8px;
+  padding: 14px 0 4px;
+  border-top: 0;
+}
+
+.summary-card.staff .item + .item {
+  margin-top: 14px;
+  border-top: 1px solid #edf0f3;
+}
+
+.summary-card.staff .check {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  margin-top: -4px;
+}
+
+.summary-card.staff .check input {
+  width: 24px;
+  height: 24px;
+  margin: 0;
+  accent-color: #2f6fed;
+}
+
+.summary-card.staff dl {
+  grid-template-columns: 82px minmax(0, 1fr);
+  gap: 8px 10px;
+  margin-top: 8px;
+  padding-left: 2px;
+}
+
+.summary-card.staff dt {
+  color: #a2a7af;
+  font-size: 13px;
+}
+
+.summary-card.staff dd {
+  text-align: right;
+}
+
+.summary-card.staff dd.amount {
+  color: #ec6267;
+}
+
+.summary-card.staff .item.handled .body {
+  opacity: 1;
+  text-decoration: none;
+}
+
+.summary-card.staff .item.handled .title {
+  color: #727982;
+}
+
+.summary-card.staff .item.handled .item-state {
+  background: #e9f8f1;
+  color: #218261;
+}
+
+.summary-card.staff .preps {
+  padding: 0;
+  list-style: none;
+}
+
+.summary-card.staff .preps li {
+  display: flex;
+  align-items: center;
+  min-height: 42px;
+  border-top: 1px solid #edf0f3;
+}
+
+.summary-card.staff .preps li::before {
+  width: 22px;
+  height: 22px;
+  margin-right: 10px;
+  border-radius: 50%;
+  background: #e6f7f1;
+  color: #228566;
+  content: '✓';
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.summary-card.staff .req {
+  margin-left: auto;
+  padding: 4px 7px;
+  border-radius: 999px;
+  background: #fff0ef;
+  color: #d75555;
+  font-size: 11px;
 }
 
 .summary-card.staff .head {
@@ -242,5 +401,11 @@ dd.amount {
 
 .summary-card.staff .meta {
   justify-content: flex-start;
+}
+
+@media (max-width: 380px) {
+  .summary-card.staff dl {
+    grid-template-columns: 70px minmax(0, 1fr);
+  }
 }
 </style>
