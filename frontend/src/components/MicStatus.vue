@@ -20,7 +20,7 @@ const meter = computed(() => Math.min(100, Math.round(props.level * 400)))
 </script>
 
 <template>
-  <div v-if="status !== 'off'" class="mic-status" :class="status">
+  <div v-if="status !== 'off'" class="mic-status" :class="status" role="status" aria-live="polite">
     <span class="dot" />
     <span class="label">{{ label }}</span>
     <span v-if="status === 'listening'" class="meter"><span class="fill" :style="{ width: meter + '%' }" /></span>

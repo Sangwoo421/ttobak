@@ -12,8 +12,8 @@ const routes = [
   { path: '/senior/summary/:id', component: () => import('@/views/senior/SeniorSummary.vue'), meta: { frame: 'phone' } },
 
   { path: '/staff', component: () => import('@/views/staff/StaffHome.vue') },
-  { path: '/staff/summaries', component: () => import('@/views/staff/StaffSummaryList.vue') },
-  { path: '/staff/summaries/:id', component: () => import('@/views/staff/StaffSummaryDetail.vue') },
+  { path: '/staff/summaries', component: () => import('@/views/staff/StaffSummaryList.vue'), meta: { frame: 'phone' } },
+  { path: '/staff/summaries/:id', component: () => import('@/views/staff/StaffSummaryDetail.vue'), meta: { frame: 'phone' } },
 
   { path: '/:pathMatch(.*)*', redirect: '/mock/home' },
 ]
