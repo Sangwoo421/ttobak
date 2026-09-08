@@ -107,7 +107,7 @@ async function sendText() {
         <div v-if="!startError" class="bottom" :class="{ confirm: isConfirm }">
           <template v-if="conv.ended.value">
             <p class="end-text">다음에 또 불러 주세요</p>
-            <BigButton kind="primary" @click="router.push('/mock/home')">처음으로</BigButton>
+            <BigButton kind="primary" @click="router.push('/mock/home')">홈으로</BigButton>
           </template>
 
           <template v-else>
