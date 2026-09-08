@@ -71,14 +71,21 @@ const conv = useConversation()
 }
 
 .gear {
-  width: 36px;
-  height: 36px;
+  width: 48px;
+  height: 48px;
+  flex: none;
   border-radius: 50%;
   border: 0;
   background: rgba(0, 0, 0, 0.12);
   color: rgba(0, 0, 0, 0.55);
-  font-size: 18px;
+  font-size: 24px;
   padding: 0;
+}
+
+.stop:focus-visible,
+.gear:focus-visible {
+  outline: 5px solid #1a56b0;
+  outline-offset: 3px;
 }
 
 .content {
@@ -112,5 +119,23 @@ const conv = useConversation()
 .toast-leave-to {
   opacity: 0;
   transform: translateX(-50%) translateY(10px);
+}
+
+@media (max-width: 360px) {
+  .top {
+    gap: 4px;
+    padding: 8px;
+  }
+
+  .title {
+    font-size: 22px;
+    white-space: nowrap;
+  }
+
+  .stop {
+    min-width: 80px;
+    padding: 0 10px;
+    font-size: 22px;
+  }
 }
 </style>

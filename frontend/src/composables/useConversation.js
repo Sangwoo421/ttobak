@@ -47,14 +47,14 @@ export function useConversation() {
   const canInteract = computed(() => !busy.value && !session.pending && recorder.status.value === 'idle')
 
   /** 세션 시작 + 브리핑 재생. onStarted 는 세션이 생긴 직후(재생 전), resolve 는 재생이 끝난 뒤 (state → LISTENING) */
-  async function begin({ onStarted, ...opts } = {}) {
+  async function begin({ onStarted, playBriefing = true, ...opts } = {}) {
     ended.value = false
     hint.value = ''
     player.stop()
     if (recorder.status.value === 'listening') recorder.cancel()
     const resp = await session.start(opts)
     onStarted?.(resp)
-    await player.play(resp.briefing?.audio_url)
+    if (playBriefing) await player.play(resp.briefing?.audio_url)
     session.briefingEnded()
     return resp
   }
