@@ -15,8 +15,12 @@ class STTProvider(Protocol):
 
 
 class TTSProvider(Protocol):
-    def synthesize(self, text: str, tone: str = "friendly") -> tuple[bytes, str]:
-        """텍스트 -> (오디오 바이트, 확장자)."""
+    def synthesize(self, text: str, tone: str = "friendly") -> tuple[bytes, str, bool]:
+        """텍스트 -> (오디오 바이트, 확장자, is_fallback).
+
+        is_fallback=True 는 실제 합성이 아니라 대체본(무음 등)이라는 뜻이다.
+        app/services/audio_cache.py 는 이 결과를 파일로 캐시하지 않고, 다음 호출에서 다시 시도한다.
+        """
         ...
 
 

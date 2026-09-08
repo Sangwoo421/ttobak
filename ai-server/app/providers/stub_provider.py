@@ -16,7 +16,7 @@ class StubSTTProvider:
 
 
 class StubTTSProvider:
-    def synthesize(self, text: str, tone: str = "friendly") -> tuple[bytes, str]:
+    def synthesize(self, text: str, tone: str = "friendly") -> tuple[bytes, str, bool]:
         n_frames = int(_SILENCE_FRAMERATE * _SILENCE_SECONDS)
         buf = io.BytesIO()
         with wave.open(buf, "wb") as wf:
@@ -24,7 +24,8 @@ class StubTTSProvider:
             wf.setsampwidth(2)
             wf.setframerate(_SILENCE_FRAMERATE)
             wf.writeframes(b"\x00\x00" * n_frames)
-        return buf.getvalue(), "wav"
+        # 무음 대체본이다 — 절대 캐시되면 안 된다 (is_fallback=True).
+        return buf.getvalue(), "wav", True
 
 
 class StubLLMProvider:
