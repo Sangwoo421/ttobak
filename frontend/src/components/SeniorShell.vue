@@ -3,15 +3,15 @@ import { useRouter } from 'vue-router'
 import DevPanel from './DevPanel.vue'
 import { useConversation } from '@/composables/useConversation'
 
-// 어르신 화면 공통 껍데기: 헤더(제목 · 그만 · ⚙) + 개발 패널 + 토스트.
-// "그만" 버튼은 어떤 상태에서도 보인다 (policy §6).
+// 어르신 화면 공통 껍데기: 헤더(뒤로가기 · 제목) + 개발 패널 + 토스트.
+//
+// 헤더에는 나가는 길 하나만 둔다. 예전에는 뒤로가기와 "그만"이 나란히 있었는데, 어르신
+// 입장에서는 둘 다 "이 화면에서 나가기"라 구분이 안 되고 policy §6 의 "한 화면에 버튼 3개
+// 이하"도 넘겼다. 대화를 끝내는 "그만"은 음성과 대화 중 큰 버튼으로 그대로 남아 있다.
 defineProps({
   title: { type: String, default: '또박또박' },
-  stopLabel: { type: String, default: '그만' },
-  // 어르신 모드 홈으로 돌아가는 뒤로가기. 어디서 왔든 돌아갈 곳은 홈이다.
   back: { type: Boolean, default: true },
 })
-const emit = defineEmits(['stop'])
 const conv = useConversation()
 const router = useRouter()
 
@@ -21,6 +21,18 @@ function goHome() {
   conv.interrupt?.() // 재생·녹음을 멈추고 나간다
   router.push('/mock/home')
 }
+
+// 개발자 패널은 시연 안전장치(녹음 클립 입력·침묵 대기 전환·debug)라 꼭 필요하지만
+// 제품 기능이 아니다. 심사위원 눈에 정체불명의 톱니바퀴가 보이면 안 되므로 제목을
+// 길게 눌러야 열리게 숨긴다.
+let pressTimer = null
+function holdStart() {
+  clearTimeout(pressTimer)
+  pressTimer = setTimeout(() => { conv.devOpen.value = !conv.devOpen.value }, 1500)
+}
+function holdEnd() {
+  clearTimeout(pressTimer)
+}
 </script>
 
 <template>
@@ -29,9 +41,14 @@ function goHome() {
       <button v-if="back" type="button" class="back" aria-label="홈으로 돌아가기" @click="goHome">
         <span aria-hidden="true">←</span>
       </button>
-      <div class="title">{{ title }}</div>
-      <button type="button" class="stop" @click="emit('stop')">{{ stopLabel }}</button>
-      <button type="button" class="gear" title="개발 패널" aria-label="개발 패널" @click="conv.devOpen.value = !conv.devOpen.value">⚙</button>
+      <h1
+        class="title"
+        @pointerdown="holdStart"
+        @pointerup="holdEnd"
+        @pointerleave="holdEnd"
+        @pointercancel="holdEnd"
+        @contextmenu.prevent
+      >{{ title }}</h1>
     </header>
 
     <DevPanel v-if="conv.devOpen.value" />
@@ -84,41 +101,24 @@ function goHome() {
   background: #fff;
 }
 
+.back:focus-visible {
+  outline: 5px solid #1a56b0;
+  outline-offset: 3px;
+}
+
 .title {
   flex: 1;
+  margin: 0;
   font-size: 24px;
   font-weight: 900;
   color: #1b1b1b;
-}
-
-.stop {
-  min-height: 72px;
-  min-width: 110px;
-  padding: 0 20px;
-  border-radius: var(--radius);
-  border: 3px solid var(--danger);
-  background: #fff;
-  color: var(--danger);
-  font-size: 24px;
-  font-weight: 900;
-}
-
-.gear {
-  width: 48px;
-  height: 48px;
-  flex: none;
-  border-radius: 50%;
-  border: 0;
-  background: rgba(0, 0, 0, 0.12);
-  color: rgba(0, 0, 0, 0.55);
-  font-size: 24px;
-  padding: 0;
-}
-
-.stop:focus-visible,
-.gear:focus-visible {
-  outline: 5px solid #1a56b0;
-  outline-offset: 3px;
+  line-height: 1.25;
+  /* "들어오고 나 / 간 돈" 처럼 단어 중간에서 깨지지 않게 어절 단위로만 접는다 */
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: default;
 }
 
 .content {
@@ -162,18 +162,11 @@ function goHome() {
 
   .title {
     font-size: 22px;
-    white-space: nowrap;
-  }
-
-  .stop {
-    min-width: 72px;
-    padding: 0 8px;
-    font-size: 20px;
   }
 
   .back {
-    width: 44px;
-    height: 44px;
+    width: 46px;
+    height: 46px;
     font-size: 22px;
   }
 }

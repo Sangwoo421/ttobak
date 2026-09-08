@@ -38,16 +38,10 @@ function onButton(id) {
   conv.pressButton(id)
   router.push('/senior/chat')
 }
-
-function onStop() {
-  if (!session.hasSession) return router.push('/mock/home')
-  conv.pressButton('STOP')
-  router.push('/senior/chat')
-}
 </script>
 
 <template>
-  <SeniorShell title="들어오고 나간 돈" @stop="onStop">
+  <SeniorShell title="들어오고 나간 돈">
     <ToneFrame :tone="session.tone">
       <div class="page">
         <div v-if="error" class="error-box">

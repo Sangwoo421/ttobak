@@ -78,11 +78,6 @@ async function replay() {
   return conv.replayLast()
 }
 
-function goHome() {
-  player.stop()
-  router.push('/mock/home')
-}
-
 onMounted(async () => {
   await load()
   if (active) await poll()
@@ -96,7 +91,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <SeniorShell title="창구 요약서" @stop="goHome">
+  <SeniorShell title="창구 요약서">
     <ToneFrame :tone="done ? 'friendly' : 'confirm'">
       <div class="page">
         <div v-if="done" class="done" role="status" aria-live="assertive">
