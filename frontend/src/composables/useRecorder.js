@@ -150,7 +150,9 @@ async function record(opts = {}) {
     if (e?.name === 'NotAllowedError' || e?.name === 'SecurityError') {
       throw new Error('마이크를 쓸 수 없어요. 브라우저 권한을 확인해 주세요.')
     }
-    throw new Error(e?.message || '마이크를 시작하지 못했어요. 다시 시도해 주세요.')
+    // 브라우저가 던지는 영어 메시지("Not supported" 등)를 그대로 화면에 보이지 않는다.
+    console.warn('[recorder]', e)
+    throw new Error('마이크를 시작하지 못했어요. 아래 버튼으로도 하실 수 있어요.')
   }
 
   const done = new Promise((resolve) => {
