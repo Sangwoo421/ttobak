@@ -48,9 +48,13 @@ def to_korean(n: int) -> str:
 
 
 def to_korean_won(amount: int | None) -> str:
+    """화면에 보이는/실제로 읽어주는 금액 표기. 삼십만 원 대신 300,000원처럼 숫자로 쓴다
+    (한글 숫자보다 읽고 스캔하기 쉽고, TTS 도 자릿수 콤마 표기를 자연스럽게 읽는다).
+    후보 매칭용 한글 숫자(candidates.py)와는 별개다 - 거기는 어르신이 음성으로
+    "삼십만원"이라고 말할 걸 매칭해야 하므로 to_korean() 을 그대로 쓴다."""
     if amount is None:
         return "금액 미정"
-    return f"{to_korean(amount)} 원"
+    return f"{amount:,}원"
 
 
 def native_count(n: int) -> str:

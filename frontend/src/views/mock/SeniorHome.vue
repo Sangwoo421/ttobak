@@ -12,11 +12,16 @@ import LevelBadge from '@/components/LevelBadge.vue'
 //  - 무엇을 물어야 할지 몰라도 되도록, 할 수 있는 일을 큰 버튼 세 개로만 보여준다
 //  - 확인 가능 / 일부 확인 / 확인 안 됨을 배지로 미리 알려, 앱이 뭘 모르는지 숨기지 않는다
 // (담당 조태석·이성우 경계에 걸쳐 있음. docs/07-handoff.md 참고)
-const props = defineProps({ account: { type: Object, required: true } })
-const emit = defineEmits(['exit'])
+// 독립 라우트(/senior/home)로 진입하므로 계좌 정보를 직접 들고 있는다.
+// MockHome.vue 의 계좌 데이터와 값을 맞춰 둔다.
+const account = { name: 'KB국민ONE통장', number: '123-45-****67', balance: 1234560 }
 
 const router = useRouter()
 const player = useAudioPlayer()
+
+function exitSeniorMode() {
+  router.push('/mock/home')
+}
 
 const items = ref([])
 const loading = ref(true)
@@ -61,7 +66,7 @@ function when(tx) {
         <div class="s-mode">어르신 모드</div>
         <div class="s-name">{{ account.name }}</div>
       </div>
-      <button type="button" class="s-off" @click="emit('exit')">모드 끄기</button>
+      <button type="button" class="s-off" @click="exitSeniorMode">모드 끄기</button>
     </header>
 
     <section class="s-balance">

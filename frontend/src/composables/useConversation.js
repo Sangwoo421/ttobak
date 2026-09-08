@@ -12,6 +12,7 @@ import { errorMessage } from '@/api/http'
 
 const busy = ref(false) // STT/턴 요청 진행 중
 const ended = ref(false) // END 액션을 받았다
+const stopping = ref(false) // STOP 을 눌러서 응답을 기다리는 중 (이전 버튼이 잠깐 보이는 걸 막는다)
 const toast = ref('')
 const hint = ref('') // 마이크 안내 문구 (예: 잘 못 들었어요)
 const autoListen = ref(true) // ui.listen 자동 마이크 (시끄러운 곳에서 끌 수 있다)
@@ -69,17 +70,22 @@ export function useConversation() {
 
   /** 턴 응답 공통 후처리 */
   async function afterTurn(resp) {
-    if (!resp) return
+    if (!resp) {
+      stopping.value = false
+      return
+    }
     await player.play(resp.audio_url)
     for (const action of resp.actions || []) {
       switch (action.type) {
         case 'OPEN_SUMMARY': {
           const id = action.payload?.summary_id
           if (id != null) routerRef?.push(`/senior/summary/${id}`)
+          stopping.value = false
           return
         }
         case 'END':
           ended.value = true
+          stopping.value = false
           return
         case 'ADD_QUESTION':
         case 'ADD_REQUEST':
@@ -92,6 +98,8 @@ export function useConversation() {
           break
       }
     }
+    // STOP 은 정책상 항상 END 로 끝나야 하지만, 혹시 다른 액션으로 왔더라도 로딩 화면에 갇히지 않게 한다.
+    stopping.value = false
     if (resp.ui?.listen && autoListen.value && !ended.value) {
       await startListening()
     }
@@ -105,6 +113,7 @@ export function useConversation() {
       busy.value = false
       if (resp === null) {
         // STT 가 빈 문자열
+        stopping.value = false
         hint.value = '잘 못 들었어요. 마이크를 누르고 다시 말씀해 주세요.'
         return null
       }
@@ -112,6 +121,7 @@ export function useConversation() {
       return resp
     } catch (e) {
       busy.value = false
+      stopping.value = false
       hint.value = errorMessage(e)
       console.error('[turn]', e)
       return null
@@ -125,6 +135,7 @@ export function useConversation() {
 
   /** 버튼 (ASK_MORE / GO_COUNTER / STOP / YES / NO / REPEAT) */
   function pressButton(button_id) {
+    if (button_id === 'STOP') stopping.value = true
     interrupt()
     return runTurn(session.sendButton(button_id))
   }
@@ -182,6 +193,7 @@ export function useConversation() {
     canInteract,
     busy,
     ended,
+    stopping,
     toast,
     hint,
     autoListen,

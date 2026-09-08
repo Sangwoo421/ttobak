@@ -100,7 +100,7 @@ export const useSessionStore = defineStore('session', {
 
     /** 버튼 턴. 말풍선에는 버튼 라벨을 남긴다 */
     sendButton(button_id) {
-      const label = (this.buttons || []).find((b) => b.id === button_id)?.label || { STOP: '그만' }[button_id] || button_id
+      const label = (this.buttons || []).find((b) => b.id === button_id)?.label || { STOP: '대화 종료' }[button_id] || button_id
       return this._turn({ button_id }, label)
     },
 

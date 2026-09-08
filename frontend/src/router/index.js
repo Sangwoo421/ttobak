@@ -6,6 +6,7 @@ const routes = [
   { path: '/', redirect: '/mock/home' },
 
   { path: '/mock/home', component: () => import('@/views/mock/MockHome.vue'), meta: { frame: 'phone' } },
+  { path: '/senior/home', component: () => import('@/views/mock/SeniorHome.vue'), meta: { frame: 'phone' } },
 
   { path: '/senior/briefing', component: () => import('@/views/senior/SeniorBriefing.vue'), meta: { frame: 'phone' } },
   { path: '/senior/chat', component: () => import('@/views/senior/SeniorChat.vue'), meta: { frame: 'phone' } },

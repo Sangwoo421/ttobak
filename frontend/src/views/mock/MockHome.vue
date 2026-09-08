@@ -3,9 +3,10 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { won } from '@/utils/format'
 import { useAudioPlayer } from '@/composables/useAudioPlayer'
-import SeniorHome from './SeniorHome.vue'
 
 // KB스타뱅킹 느낌의 정적 홈 목업. 위쪽 푸시 알림 배너를 누르면 어르신 모드 브리핑으로 들어간다.
+// 어르신 모드는 /senior/home 으로 분리된 라우트다(모드 진입/탈출이 다른 화면에서도 대칭이 맞아야 하므로
+// 컴포넌트 로컬 상태가 아니라 라우트로 관리한다).
 // (담당 조태석) 시연 1단계. 여기서는 어떤 API 도 부르지 않는다.
 const router = useRouter()
 const player = useAudioPlayer()
@@ -29,13 +30,10 @@ function openBriefing() {
   router.push('/senior/briefing')
 }
 
-function openChat() {
-  player.unlock()
-  router.push({ path: '/senior/chat', query: { start: 'true' } })
-}
-
 // 어르신 모드는 앱의 모드다. 같은 데이터가 다른 방식으로 보인다.
-const seniorMode = ref(false)
+function openSeniorMode() {
+  router.push('/senior/home')
+}
 
 // 이체·조회·카드처럼 기존 앱이 이미 하는 일은 만들지 않는다(기획서 "적용 형태").
 // 다만 아무 반응이 없으면 덜 만든 것처럼 보이므로, 경계라는 사실을 화면이 직접 말한다.
@@ -49,9 +47,7 @@ function outOfScope(label) {
 </script>
 
 <template>
-  <SeniorHome v-if="seniorMode" :account="account" @exit="seniorMode = false" />
-
-  <div v-else class="kb-home">
+  <div class="kb-home">
     <!-- 푸시 알림 배너 -->
     <button type="button" class="push" @click="openBriefing">
       <span class="app-icon">KB</span>
@@ -64,7 +60,7 @@ function outOfScope(label) {
 
     <header class="kb-top">
       <span class="logo"><span class="star">★</span>KB스타뱅킹</span>
-      <button type="button" class="senior-toggle" @click="seniorMode = true">👵 어르신 모드</button>
+      <button type="button" class="senior-toggle" @click="openSeniorMode">👵 어르신 모드</button>
     </header>
 
     <section class="balance">
@@ -75,17 +71,6 @@ function outOfScope(label) {
         <button type="button" @click="outOfScope('이체')">이체</button>
         <button type="button" @click="outOfScope('내역 조회')">내역</button>
       </div>
-    </section>
-
-    <section class="chat-entry">
-      <button type="button" @click="openChat">
-        <span class="chat-icon" aria-hidden="true">🎙</span>
-        <span class="chat-copy">
-          <strong>또박또박 챗봇</strong>
-          <small>말하거나 글로 편하게 물어보세요</small>
-        </span>
-        <span class="chat-arrow" aria-hidden="true">›</span>
-      </button>
     </section>
 
     <section class="quick">
@@ -255,67 +240,6 @@ function outOfScope(label) {
   background: rgba(255, 255, 255, 0.7);
   font-weight: 800;
   font-size: 15px;
-}
-
-.chat-entry {
-  margin: 4px 16px 8px;
-}
-
-.chat-entry button {
-  width: 100%;
-  min-height: 82px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  border: 3px solid #1b1b1b;
-  border-radius: 18px;
-  background: #fff;
-  color: #1b1b1b;
-  padding: 12px 16px;
-  text-align: left;
-  box-shadow: var(--shadow);
-}
-
-.chat-entry button:focus-visible {
-  outline: 5px solid #1a56b0;
-  outline-offset: 3px;
-}
-
-.chat-icon {
-  width: 48px;
-  height: 48px;
-  flex: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background: var(--kb-yellow);
-  font-size: 24px;
-}
-
-.chat-copy {
-  min-width: 0;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.chat-copy strong {
-  font-size: 20px;
-  font-weight: 900;
-}
-
-.chat-copy small {
-  color: #666;
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.chat-arrow {
-  flex: none;
-  font-size: 34px;
-  font-weight: 700;
 }
 
 .quick {

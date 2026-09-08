@@ -2,22 +2,35 @@
 import DevPanel from './DevPanel.vue'
 import { useConversation } from '@/composables/useConversation'
 
-// 어르신 화면 공통 껍데기: 헤더(제목 · 그만 · ⚙) + 개발 패널 + 토스트.
-// "그만" 버튼은 어떤 상태에서도 보인다 (policy §6).
+// 어르신 화면 공통 껍데기: 헤더(제목 · 대화 종료 · ⚙) + 개발 패널 + 토스트.
+// "대화 종료" 버튼은 어떤 상태에서도 보인다 (policy §6).
 defineProps({
   title: { type: String, default: '또박또박' },
-  stopLabel: { type: String, default: '그만' },
+  // "그만"은 뭘 그만하는지 처음 보면 알기 어렵다. "대화 종료"가 뭘 끝내는지 명확하다.
+  stopLabel: { type: String, default: '대화 종료' },
 })
 const emit = defineEmits(['stop'])
 const conv = useConversation()
+const isDev = import.meta.env.DEV
 </script>
 
 <template>
   <div class="shell senior">
     <header class="top">
       <div class="title">{{ title }}</div>
-      <button type="button" class="stop" @click="emit('stop')">{{ stopLabel }}</button>
-      <button type="button" class="gear" title="개발 패널" aria-label="개발 패널" @click="conv.devOpen.value = !conv.devOpen.value">⚙</button>
+      <button type="button" class="stop" @click="emit('stop')">
+        <span class="stop-ico" aria-hidden="true">■</span>{{ stopLabel }}
+      </button>
+      <!-- 개발/측정용 패널. tools/measure 측정 스크립트와 시연 중 마이크 문제 시 텍스트 입력 대체 수단으로 쓰인다.
+           실제 사용자(어르신)에게는 필요 없는 도구라 프로덕션 빌드(npm run build)에서는 아예 숨긴다. -->
+      <button
+        v-if="isDev"
+        type="button"
+        class="gear"
+        title="개발 패널"
+        aria-label="개발 패널"
+        @click="conv.devOpen.value = !conv.devOpen.value"
+      >⚙</button>
     </header>
 
     <DevPanel v-if="conv.devOpen.value" />
@@ -58,16 +71,30 @@ const conv = useConversation()
   color: #1b1b1b;
 }
 
+/* 최소 72px/22px 는 정책(senior-mode-policy.md §6) 최소 기준이라 줄이면 안 된다 */
 .stop {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   min-height: 72px;
-  min-width: 110px;
-  padding: 0 20px;
-  border-radius: var(--radius);
-  border: 3px solid var(--danger);
-  background: #fff;
-  color: var(--danger);
-  font-size: 24px;
+  min-width: 100px;
+  padding: 0 18px;
+  border-radius: 999px;
+  border: none;
+  background: var(--danger);
+  color: #fff;
+  font-size: 22px;
   font-weight: 900;
+  box-shadow: 0 3px 10px rgba(217, 48, 37, 0.35);
+}
+
+.stop-ico {
+  font-size: 12px;
+}
+
+.stop:active {
+  background: #b9271d;
 }
 
 .gear {
