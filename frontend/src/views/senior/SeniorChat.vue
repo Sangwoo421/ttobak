@@ -68,12 +68,6 @@ watch(
   { immediate: true },
 )
 
-function onStop() {
-  if (conv.ended.value || !session.hasSession) return router.push('/senior/home')
-  if (conv.stopping.value) return // 이미 그만 처리 중이면 중복 클릭 무시
-  conv.pressButton('STOP')
-}
-
 async function sendText() {
   const text = typedText.value.trim()
   if (!text || disabled.value) return
@@ -83,7 +77,7 @@ async function sendText() {
 </script>
 
 <template>
-  <SeniorShell :title="isConfirm ? '확인해 주세요' : '또박또박'" @stop="onStop">
+  <SeniorShell :title="isConfirm ? '확인해 주세요' : '물어보기'">
     <ToneFrame :tone="session.tone">
       <div class="chat">
         <!-- 브리핑한 3건 (CONFIRM 톤에서는 숨겨 화면을 단순하게) -->
@@ -108,7 +102,7 @@ async function sendText() {
         <div v-if="!startError" class="bottom" :class="{ confirm: isConfirm }">
           <template v-if="conv.ended.value">
             <p class="end-text">다음에 또 불러 주세요</p>
-            <BigButton kind="primary" @click="router.push('/senior/home')">처음으로</BigButton>
+            <BigButton kind="primary" @click="router.push('/mock/home')">홈으로</BigButton>
           </template>
 
           <template v-else-if="conv.stopping.value">

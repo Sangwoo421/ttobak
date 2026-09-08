@@ -38,17 +38,10 @@ function onButton(id) {
   conv.pressButton(id)
   router.push('/senior/chat')
 }
-
-function onStop() {
-  if (!session.hasSession) return router.push('/senior/home')
-  if (conv.stopping.value) return // 이미 그만 처리 중이면 중복 클릭 무시
-  conv.pressButton('STOP')
-  router.push('/senior/chat') // 처리 결과(정리 중 → 처음으로 화면)는 SeniorChat 이 보여준다
-}
 </script>
 
 <template>
-  <SeniorShell title="들어오고 나간 돈" @stop="onStop">
+  <SeniorShell title="들어오고 나간 돈">
     <ToneFrame :tone="session.tone">
       <div class="page">
         <div v-if="error" class="error-box">
