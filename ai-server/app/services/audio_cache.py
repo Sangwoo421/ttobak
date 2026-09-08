@@ -1,0 +1,49 @@
+"""sha1(text+tone+model) -> audio_cache/<hash>.<ext>. Same text+tone+model reuses the file.
+
+A synthesize() result is written to the cache only when it is a real synthesis: the provider must
+report is_fallback=False AND the audio must be at least _MIN_CACHE_BYTES. A fallback (silent stub
+after a rate limit) or a suspiciously tiny clip is NOT written anywhere — the caller gets
+FALLBACK_AUDIO_URL (served from memory by GET /ai/audio-fallback) and the phrase is re-synthesized
+on the next call. One rehearsal 429 can no longer leave a sentence permanently silent.
+"""
+from __future__ import annotations
+
+import hashlib
+import logging
+from typing import Callable
+
+from app.config import AUDIO_CACHE_DIR
+
+logger = logging.getLogger(__name__)
+
+# (audio_bytes, ext, is_fallback)
+Synthesize = Callable[[str, str], tuple[bytes, str, bool]]
+
+# Real senior-mode sentences at 24 kHz are ~300 KB+; the silent stub is ~16-24 KB. Anything under
+# this is treated as "not a real synthesis" and is not cached.
+_MIN_CACHE_BYTES = 40_000
+
+# Not a file under audio_cache/ — GET /ai/audio-fallback streams silence from memory (app/routers/tts.py).
+FALLBACK_AUDIO_URL = "/ai/audio-fallback"
+
+
+def audio_url_for(text: str, tone: str, model: str, synthesize: Synthesize) -> tuple[str, bool]:
+    AUDIO_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    key = f"{text}\x1f{tone}\x1f{model}".encode("utf-8")
+    digest = hashlib.sha1(key).hexdigest()
+
+    existing = next(AUDIO_CACHE_DIR.glob(f"{digest}.*"), None)
+    if existing is not None:
+        return f"/ai/audio/{existing.name}", True
+
+    audio_bytes, ext, is_fallback = synthesize(text, tone)
+
+    too_small = len(audio_bytes) < _MIN_CACHE_BYTES
+    if is_fallback or too_small:
+        reason = "provider fallback" if is_fallback else f"{len(audio_bytes)} bytes < {_MIN_CACHE_BYTES} min"
+        logger.warning("TTS not cached (%s) for tone=%s text=%r; will retry next call", reason, tone, text[:60])
+        return FALLBACK_AUDIO_URL, False
+
+    path = AUDIO_CACHE_DIR / f"{digest}.{ext}"
+    path.write_bytes(audio_bytes)
+    return f"/ai/audio/{path.name}", False
