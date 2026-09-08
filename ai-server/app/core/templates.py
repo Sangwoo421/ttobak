@@ -44,6 +44,10 @@ def ieyo(w: str) -> str:
     return josa(w, "이에요", "예요")
 
 
+def irago(w: str) -> str:
+    return josa(w, "이라고", "라고")
+
+
 # -------------------------------------------------------------- briefing ----
 def _kind(cls: dict) -> str:
     cp = cls.get("counterparty") or {}
@@ -107,8 +111,26 @@ def explain(item: dict) -> str:
 
 
 def explain_unknown(counterparty_name: str) -> str:
-    return (f"통장에는 '{counterparty_name}'이라고만 적혀 있어서, 무슨 돈인지는 제가 알 수 없어요. "
-            f"창구에서 여쭤볼 목록에 적어둘까요?")
+    return (f"통장에는 '{counterparty_name}'{irago(counterparty_name)}만 적혀 있어서, "
+            f"무슨 돈인지는 제가 알 수 없어요. 창구에서 여쭤볼 목록에 적어둘까요?")
+
+
+def focused(item: dict, when: str) -> str:
+    """내역에서 거래 한 건을 눌렀을 때: 그 건을 읽고, 설명에서 새로 더할 것만 잇는다.
+
+    브리핑 문구가 이미 '누가 얼마'를 말하므로 explain() 을 그대로 붙이면 같은 말을 두 번 한다.
+    한 번에 한 가지만 말한다는 정책(senior-mode-policy §1)에도 어긋난다.
+    """
+    tx, cls = item["transaction"], item["classification"]
+    head = f"{when}에 {briefing_clause(tx, cls)}"
+    level = cls.get("level")
+    cp = cls.get("counterparty") or {}
+    if level == "CONFIRMED":
+        rel = cp.get("relation") or "가족"
+        return f"{head} 등록된 {rel} 통장이에요."
+    if level == "PARTIAL":
+        return f"{head} 자세한 내역은 제가 볼 수 없어요."
+    return f"{head} {explain_unknown(tx.get('counterparty_name', ''))}"
 
 
 def default_question(tx: dict) -> str:
