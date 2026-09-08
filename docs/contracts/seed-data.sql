@@ -2,6 +2,10 @@
 -- docker-compose 의 mysql 컨테이너가 최초 기동 시 자동 실행한다.
 -- 시연 시나리오(docs/03-demo-scenario.md)와 1:1로 맞춰져 있으므로 값을 바꾸면 대본도 바꿀 것.
 
+-- 이 줄을 지우지 말 것. 컨테이너 로케일에 따라 mysql 클라이언트가 이 파일을 latin1(CP1252)로
+-- 읽어 한글이 이중 인코딩되어 저장된다. (김철수 -> ê¹€ì² ìˆ˜)
+SET NAMES utf8mb4;
+
 CREATE DATABASE IF NOT EXISTS ttobak CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE ttobak;
 
