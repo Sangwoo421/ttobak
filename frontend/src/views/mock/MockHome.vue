@@ -3,10 +3,11 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { won } from '@/utils/format'
 import { useAudioPlayer } from '@/composables/useAudioPlayer'
+import SeniorHome from './SeniorHome.vue'
+import { useAppModeStore } from '@/stores/appMode'
 
 // KB스타뱅킹 느낌의 정적 홈 목업. 위쪽 푸시 알림 배너를 누르면 어르신 모드 브리핑으로 들어간다.
-// 어르신 모드는 /senior/home 으로 분리된 라우트다(모드 진입/탈출이 다른 화면에서도 대칭이 맞아야 하므로
-// 컴포넌트 로컬 상태가 아니라 라우트로 관리한다).
+// 어르신 모드는 앱의 모드다(appMode 스토어). 화면을 옮겨 다니거나 새로고침해도 유지된다.
 // (담당 조태석) 시연 1단계. 여기서는 어떤 API 도 부르지 않는다.
 const router = useRouter()
 const player = useAudioPlayer()
@@ -30,10 +31,10 @@ function openBriefing() {
   router.push('/senior/briefing')
 }
 
-// 어르신 모드는 앱의 모드다. 같은 데이터가 다른 방식으로 보인다.
-function openSeniorMode() {
-  router.push('/senior/home')
-}
+// 어르신 모드는 앱의 모드다. 화면을 옮겨 다녀도 유지되어야 하므로 스토어에 있다.
+// (중간에 있던 "또박또박 챗봇" 진입 버튼은 카드형 UI 라 은행 홈 레이아웃을 깼어서 없앴다 -
+//  어르신 모드 진입은 상단 버튼 하나로 통일한다.)
+const appMode = useAppModeStore()
 
 // 이체·조회·카드처럼 기존 앱이 이미 하는 일은 만들지 않는다(기획서 "적용 형태").
 // 다만 아무 반응이 없으면 덜 만든 것처럼 보이므로, 경계라는 사실을 화면이 직접 말한다.
@@ -47,7 +48,9 @@ function outOfScope(label) {
 </script>
 
 <template>
-  <div class="kb-home">
+  <SeniorHome v-if="appMode.seniorMode" :account="account" @exit="appMode.disable()" />
+
+  <div v-else class="kb-home">
     <!-- 푸시 알림 배너 -->
     <button type="button" class="push" @click="openBriefing">
       <span class="app-icon">KB</span>
@@ -60,7 +63,7 @@ function outOfScope(label) {
 
     <header class="kb-top">
       <span class="logo"><span class="star">★</span>KB스타뱅킹</span>
-      <button type="button" class="senior-toggle" @click="openSeniorMode">👵 어르신 모드</button>
+      <button type="button" class="senior-toggle" @click="appMode.enable()">👵 어르신 모드</button>
     </header>
 
     <section class="balance">
