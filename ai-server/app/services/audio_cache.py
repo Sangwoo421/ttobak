@@ -5,6 +5,11 @@ report is_fallback=False AND the audio must be at least _MIN_CACHE_BYTES. A fall
 after a rate limit) or a suspiciously tiny clip is NOT written anywhere — the caller gets
 FALLBACK_AUDIO_URL (served from memory by GET /ai/audio-fallback) and the phrase is re-synthesized
 on the next call. One rehearsal 429 can no longer leave a sentence permanently silent.
+
+The same _MIN_CACHE_BYTES floor is applied on *read*: a previously cached file that is now under the
+floor (e.g. a ~16 KB silent stub written by an older build, or before the provider was switched to a
+real TTS) is deleted and re-synthesized instead of being served. A teammate swapping providers does
+not have to remember to wipe audio_cache/ by hand — it heals itself on the next call.
 """
 from __future__ import annotations
 
@@ -32,9 +37,15 @@ def audio_url_for(text: str, tone: str, model: str, synthesize: Synthesize) -> t
     key = f"{text}\x1f{tone}\x1f{model}".encode("utf-8")
     digest = hashlib.sha1(key).hexdigest()
 
-    existing = next(AUDIO_CACHE_DIR.glob(f"{digest}.*"), None)
-    if existing is not None:
-        return f"/ai/audio/{existing.name}", True
+    for existing in sorted(AUDIO_CACHE_DIR.glob(f"{digest}.*")):
+        size = existing.stat().st_size
+        if size >= _MIN_CACHE_BYTES:
+            return f"/ai/audio/{existing.name}", True
+        # Stale undersized clip (usually a pre-switch silent stub). Don't serve it — drop it and
+        # fall through to re-synthesize, so a provider swap recovers without a manual cache wipe.
+        logger.warning("Evicting undersized TTS cache file %s (%d bytes < %d min); re-synthesizing",
+                       existing.name, size, _MIN_CACHE_BYTES)
+        existing.unlink(missing_ok=True)
 
     audio_bytes, ext, is_fallback = synthesize(text, tone)
 
