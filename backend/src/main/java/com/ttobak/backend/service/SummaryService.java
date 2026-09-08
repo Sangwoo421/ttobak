@@ -12,8 +12,8 @@ import java.util.Set;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ttobak.backend.config.BadRequestException;
-import com.ttobak.backend.config.NotFoundException;
+import com.ttobak.backend.config.BusinessException;
+import com.ttobak.backend.config.ErrorCode;
 import com.ttobak.backend.domain.AccountNumberMasker;
 import com.ttobak.backend.domain.CounterSummary;
 import com.ttobak.backend.domain.Counterparty;
@@ -59,17 +59,18 @@ public class SummaryService {
     public SummaryDto create(SummaryCreateRequest req) {
         auth.assertUser(req.getUserId());
         User user = transactions.findUser(req.getUserId())
-                .orElseThrow(() -> new BadRequestException("unknown user_id " + req.getUserId()));
+                .orElseThrow(() -> new BusinessException(ErrorCode.UNKNOWN_USER, "unknown user_id " + req.getUserId()));
 
         List<RequestItemPayload> requests = req.getRequests() == null ? List.of() : req.getRequests();
         List<QuestionItemPayload> questions = req.getQuestions() == null ? List.of() : req.getQuestions();
 
         for (RequestItemPayload r : requests) {
             if (!Boolean.TRUE.equals(r.getConfirmedByUser())) {
-                throw new BadRequestException("requests[].confirmed_by_user must be true (CONFIRM 단계에서 '예'를 받아야 한다)");
+                throw new BusinessException(ErrorCode.CONFIRMATION_REQUIRED,
+                        "requests[].confirmed_by_user must be true (CONFIRM 단계에서 '예'를 받아야 한다)");
             }
             if (!TYPE_TRANSFER.equals(r.getType())) {
-                throw new BadRequestException("requests[].type must be TRANSFER");
+                throw new BusinessException(ErrorCode.INVALID_TRANSFER_TYPE, "requests[].type must be TRANSFER");
             }
             if (r.getRecipientCounterpartyId() != null) {
                 fillFromCounterparty(r, user.getId());
@@ -79,7 +80,7 @@ public class SummaryService {
         String branch = req.getBranchName() == null || req.getBranchName().isBlank()
                 ? user.getHomeBranch() : req.getBranchName().trim();
         if (branch == null || branch.isBlank()) {
-            throw new BadRequestException("branch_name is required (user has no home_branch)");
+            throw new BusinessException(ErrorCode.BRANCH_NAME_REQUIRED, "branch_name is required (user has no home_branch)");
         }
 
         CounterSummary summary = new CounterSummary();
@@ -111,7 +112,7 @@ public class SummaryService {
     private void fillFromCounterparty(RequestItemPayload r, long userId) {
         Counterparty cp = transactions.findCounterparty(r.getRecipientCounterpartyId())
                 .filter(c -> c.getUserId() != null && c.getUserId() == userId)
-                .orElseThrow(() -> new BadRequestException(
+                .orElseThrow(() -> new BusinessException(ErrorCode.COUNTERPARTY_NOT_OWNED,
                         "recipient_counterparty_id " + r.getRecipientCounterpartyId() + " is not a registered counterparty of user " + userId));
         if (r.getRecipientName() == null || r.getRecipientName().isBlank()) {
             r.setRecipientName(cp.getName());
@@ -149,7 +150,7 @@ public class SummaryService {
     public SummaryDto get(long summaryId) {
         CounterSummary s = summaryMapper.findById(summaryId);
         if (s == null) {
-            throw new NotFoundException("summary " + summaryId + " not found");
+            throw new BusinessException(ErrorCode.SUMMARY_NOT_FOUND, "summary " + summaryId + " not found");
         }
         return toDto(s, summaryMapper.findItems(summaryId));
     }
@@ -157,7 +158,7 @@ public class SummaryService {
     public SummaryDto getByCode(String code) {
         CounterSummary s = summaryMapper.findByCode(code);
         if (s == null) {
-            throw new NotFoundException("summary with code " + code + " not found");
+            throw new BusinessException(ErrorCode.SUMMARY_NOT_FOUND, "summary with code " + code + " not found");
         }
         return toDto(s, summaryMapper.findItems(s.getId()));
     }
@@ -165,7 +166,7 @@ public class SummaryService {
     public SummaryStatusDto status(long summaryId) {
         CounterSummary s = summaryMapper.findById(summaryId);
         if (s == null) {
-            throw new NotFoundException("summary " + summaryId + " not found");
+            throw new BusinessException(ErrorCode.SUMMARY_NOT_FOUND, "summary " + summaryId + " not found");
         }
         List<SummaryItemRow> items = summaryMapper.findItems(summaryId);
         List<SummaryItemRow> core = items.stream().filter(i -> !i.isPrep()).toList();
@@ -180,7 +181,7 @@ public class SummaryService {
 
     public List<StaffSummaryListItem> listForStaff(String status) {
         if (status != null && !status.isBlank() && !STATUSES.contains(status)) {
-            throw new BadRequestException("status must be one of " + STATUSES);
+            throw new BusinessException(ErrorCode.INVALID_STAFF_STATUS_FILTER, "status must be one of " + STATUSES);
         }
         return summaryMapper.findForStaff(status == null || status.isBlank() ? null : status);
     }
@@ -190,10 +191,10 @@ public class SummaryService {
     @Transactional
     public SummaryDto handleItem(long summaryId, long itemId, boolean handled) {
         if (summaryMapper.findById(summaryId) == null) {
-            throw new NotFoundException("summary " + summaryId + " not found");
+            throw new BusinessException(ErrorCode.SUMMARY_NOT_FOUND, "summary " + summaryId + " not found");
         }
         if (summaryMapper.findItem(summaryId, itemId) == null) {
-            throw new NotFoundException("item " + itemId + " not found in summary " + summaryId);
+            throw new BusinessException(ErrorCode.SUMMARY_ITEM_NOT_FOUND, "item " + itemId + " not found in summary " + summaryId);
         }
         summaryMapper.updateItemHandled(itemId, handled);
         recomputeStatus(summaryId);
