@@ -4,18 +4,17 @@ import { useRouter } from 'vue-router'
 import SeniorShell from '@/components/SeniorShell.vue'
 import ToneFrame from '@/components/ToneFrame.vue'
 import BigButton from '@/components/BigButton.vue'
-import MicButton from '@/components/MicButton.vue'
 import MicStatus from '@/components/MicStatus.vue'
 import LevelBadge from '@/components/LevelBadge.vue'
 import { useConversation } from '@/composables/useConversation'
 import { ordinalLabel } from '@/utils/format'
 import { errorMessage } from '@/api/http'
 
-// 시연 2단계: POST /ai/session/start → 브리핑 글 크게 + 음성 재생 → 끝나면 버튼 3개 + 마이크.
-// 버튼/마이크를 누르면 대화 화면(/senior/chat)으로 넘어가고, 턴은 useConversation 싱글턴이 이어서 처리한다.
+// 시연 2단계: POST /ai/session/start → 브리핑 글 크게 + 음성 재생 → 끝나면 선택 버튼 2개.
+// "더 물어보기"를 누르면 대화 화면으로 이동해 음성 대화를 시작한다.
 const router = useRouter()
 const conv = useConversation()
-const { session, player, recorder } = conv
+const { session, player } = conv
 
 const loading = ref(true)
 const error = ref('')
@@ -37,11 +36,6 @@ onMounted(load)
 
 function onButton(id) {
   conv.pressButton(id)
-  router.push('/senior/chat')
-}
-
-function onMic() {
-  conv.startListening()
   router.push('/senior/chat')
 }
 
@@ -76,13 +70,11 @@ function onStop() {
 
           <p v-if="session.briefing?.remaining_count > 0" class="muted small">읽지 않은 알림이 {{ session.briefing.remaining_count }}건 더 있어요</p>
 
-          <button v-if="ready" type="button" class="replay" @click="conv.replayLast()">🔊 다시 듣기</button>
         </template>
 
         <div class="bottom">
-          <MicStatus v-if="!error" :status="conv.micStatus.value" :level="recorder.level.value" />
+          <MicStatus v-if="!error && !ready" :status="conv.micStatus.value" />
           <template v-if="ready">
-            <MicButton :status="conv.micStatus.value" @click="onMic" />
             <BigButton v-for="b in session.mainButtons" :key="b.id" :kind="b.kind || 'secondary'" @click="onButton(b.id)">{{ b.label }}</BigButton>
           </template>
         </div>
@@ -136,7 +128,7 @@ function onStop() {
 }
 
 .ord {
-  font-size: 20px;
+  font-size: var(--senior-font);
   font-weight: 900;
   color: var(--kb-brown);
 }
@@ -148,17 +140,7 @@ function onStop() {
 }
 
 .small {
-  font-size: 18px;
-}
-
-.replay {
-  align-self: flex-start;
-  background: none;
-  border: 0;
-  color: var(--muted);
-  font-size: 20px;
-  font-weight: 700;
-  padding: 4px 0;
+  font-size: var(--senior-font);
 }
 
 .bottom {

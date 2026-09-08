@@ -59,7 +59,7 @@ function cleanup() {
     /* ignore */
   }
   try {
-    ctx?.close()
+    ctx?.close()?.catch?.(() => {})
   } catch {
     /* ignore */
   }
@@ -89,6 +89,7 @@ function cancel() {
 }
 
 function settle() {
+  if (!finish) return
   const durationMs = Math.round(performance.now() - startedAt)
   const mimeType = recorder?.mimeType || 'audio/webm'
   const blob = chunks.length ? new Blob(chunks, { type: mimeType }) : null
@@ -106,46 +107,55 @@ async function record(opts = {}) {
   if (!supported) throw new Error('이 브라우저는 마이크 녹음을 지원하지 않아요 (HTTPS 또는 localhost 필요)')
   if (status.value !== 'idle') throw new Error('이미 녹음 중이에요')
   const o = { ...RECORDER_DEFAULTS, ...opts }
+  status.value = 'processing'
   error.value = null
   cancelled = false
   speechDetected = false
   chunks = []
 
+  let buf
+  let byteBuf
   try {
     stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } })
+
+    const AC = window.AudioContext || window.webkitAudioContext
+    if (!AC) throw new Error('이 브라우저는 음성 감지를 지원하지 않아요.')
+    ctx = new AC()
+    if (ctx.state === 'suspended') await ctx.resume().catch(() => {})
+    analyser = ctx.createAnalyser()
+    analyser.fftSize = 2048
+    ctx.createMediaStreamSource(stream).connect(analyser)
+    buf = new Float32Array(analyser.fftSize)
+    byteBuf = new Uint8Array(analyser.fftSize)
+
+    const mimeType = pickMimeType()
+    recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined)
+    recorder.ondataavailable = (e) => {
+      if (e.data && e.data.size > 0) chunks.push(e.data)
+    }
+    recorder.onstop = settle
+    recorder.onerror = (e) => {
+      error.value = e.error || e
+      settle()
+    }
+
+    startedAt = performance.now()
+    lastSpeechAt = 0
+    recorder.start(250)
+    status.value = 'listening'
   } catch (e) {
     error.value = e
-    throw new Error('마이크를 쓸 수 없어요. 브라우저 권한을 확인해 주세요.')
-  }
-
-  const AC = window.AudioContext || window.webkitAudioContext
-  ctx = new AC()
-  if (ctx.state === 'suspended') await ctx.resume().catch(() => {})
-  analyser = ctx.createAnalyser()
-  analyser.fftSize = 2048
-  ctx.createMediaStreamSource(stream).connect(analyser)
-  const buf = new Float32Array(analyser.fftSize)
-  const byteBuf = new Uint8Array(analyser.fftSize)
-
-  const mimeType = pickMimeType()
-  recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined)
-  recorder.ondataavailable = (e) => {
-    if (e.data && e.data.size > 0) chunks.push(e.data)
-  }
-  recorder.onstop = settle
-  recorder.onerror = (e) => {
-    error.value = e.error || e
-    settle()
+    cleanup()
+    status.value = 'idle'
+    if (e?.name === 'NotAllowedError' || e?.name === 'SecurityError') {
+      throw new Error('마이크를 쓸 수 없어요. 브라우저 권한을 확인해 주세요.')
+    }
+    throw new Error(e?.message || '마이크를 시작하지 못했어요. 다시 시도해 주세요.')
   }
 
   const done = new Promise((resolve) => {
     finish = resolve
   })
-
-  startedAt = performance.now()
-  lastSpeechAt = 0
-  recorder.start(250)
-  status.value = 'listening'
 
   timer = setInterval(() => {
     if (!analyser) return

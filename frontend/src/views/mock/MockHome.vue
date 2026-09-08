@@ -26,6 +26,11 @@ function openBriefing() {
   player.unlock() // 사용자 제스처 안에서 오디오를 한 번 깨워 두면 이후 자동재생이 잘 된다
   router.push('/senior/briefing')
 }
+
+function openChat() {
+  player.unlock()
+  router.push({ path: '/senior/chat', query: { start: 'true' } })
+}
 </script>
 
 <template>
@@ -53,6 +58,17 @@ function openBriefing() {
         <button type="button">이체</button>
         <button type="button">내역</button>
       </div>
+    </section>
+
+    <section class="chat-entry">
+      <button type="button" @click="openChat">
+        <span class="chat-icon" aria-hidden="true">🎙</span>
+        <span class="chat-copy">
+          <strong>또박또박 챗봇</strong>
+          <small>말하거나 글로 편하게 물어보세요</small>
+        </span>
+        <span class="chat-arrow" aria-hidden="true">›</span>
+      </button>
     </section>
 
     <section class="quick">
@@ -218,6 +234,67 @@ function openBriefing() {
   background: rgba(255, 255, 255, 0.7);
   font-weight: 800;
   font-size: 15px;
+}
+
+.chat-entry {
+  margin: 4px 16px 8px;
+}
+
+.chat-entry button {
+  width: 100%;
+  min-height: 82px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 3px solid #1b1b1b;
+  border-radius: 18px;
+  background: #fff;
+  color: #1b1b1b;
+  padding: 12px 16px;
+  text-align: left;
+  box-shadow: var(--shadow);
+}
+
+.chat-entry button:focus-visible {
+  outline: 5px solid #1a56b0;
+  outline-offset: 3px;
+}
+
+.chat-icon {
+  width: 48px;
+  height: 48px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--kb-yellow);
+  font-size: 24px;
+}
+
+.chat-copy {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.chat-copy strong {
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.chat-copy small {
+  color: #666;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.chat-arrow {
+  flex: none;
+  font-size: 34px;
+  font-weight: 700;
 }
 
 .quick {
