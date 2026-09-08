@@ -9,6 +9,7 @@ export const useSessionStore = defineStore('session', {
   state: () => ({
     session_id: null,
     state: 'IDLE', // BRIEFING | LISTENING | EXPLAIN | OFFER_ADD_QUESTION | SLOT_* | CONFIRM | CLARIFY | SUMMARY | DONE | END
+    startState: 'LISTENING', // 브리핑 재생이 끝난 뒤 올라갈 상태. 거래 한 건이 확인 불가면 OFFER_ADD_QUESTION
     tone: 'friendly', // friendly | confirm
     messages: [], // { id, role: 'assistant'|'user', text, tone, at }
     buttons: [], // ui.buttons
@@ -44,19 +45,21 @@ export const useSessionStore = defineStore('session', {
     },
 
     /** POST /ai/session/start */
-    async start({ user_id = 1, notification_id = null, mode = 'layered' } = {}) {
+    async start({ user_id = 1, notification_id = null, transaction_id = null, mode = 'layered' } = {}) {
       this.reset()
       this.pending = true
       this.error = null
       try {
-        const resp = await ai.startSession({ user_id, notification_id, mode })
+        const resp = await ai.startSession({ user_id, notification_id, transaction_id, mode })
         this.session_id = resp.session_id
         this.state = 'BRIEFING' // 재생이 끝나면 화면이 resp.state(LISTENING) 로 올린다
+        this.startState = resp.state || 'LISTENING'
         this.tone = resp.tone || 'friendly'
         this.briefing = resp.briefing
         this.buttons = resp.ui?.buttons || []
         this.choices = []
-        this.listen = false
+        // 읽어준 뒤 바로 듣기 시작할지. 버튼을 눌러야 말할 수 있으면 탭이 한 번 더 늘어난다.
+        this.listen = resp.ui?.listen !== false
         this.silenceMs = resp.ui?.silence_ms || 2000
         if (resp.briefing?.text) this.pushMessage('assistant', resp.briefing.text, this.tone)
         return resp
@@ -70,7 +73,7 @@ export const useSessionStore = defineStore('session', {
 
     /** 브리핑 음성이 끝났을 때 */
     briefingEnded() {
-      if (this.state === 'BRIEFING') this.state = 'LISTENING'
+      if (this.state === 'BRIEFING') this.state = this.startState || 'LISTENING'
     },
 
     async _turn(body, userLabel) {

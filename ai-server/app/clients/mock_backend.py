@@ -20,6 +20,10 @@ class MockBackend:
     def get_counterparties(self, user_id: int) -> list[dict]:
         return self._load("counterparties.json")
 
+    def get_transactions(self, user_id: int, limit: int = 10) -> list[dict]:
+        # 목에는 별도 파일이 없다. 브리핑 항목을 그대로 쓴다(청취 개념이 없으므로 줄지 않는다).
+        return self.get_briefing(user_id).get("items", [])[:limit]
+
     def get_classification(self, transaction_id: int) -> dict | None:
         path = self._dir / f"classification-{transaction_id}.json"
         if path.exists():

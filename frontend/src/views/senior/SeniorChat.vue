@@ -33,11 +33,13 @@ const voiceGuide = computed(() => {
   return '마이크를 누르고 궁금한 내용을 말씀하세요.'
 })
 
-async function startDirectChat() {
+/** start=true 면 브리핑 없이 바로 대화. tx=101 이면 그 거래 한 건을 읽고 대화로 이어간다. */
+async function startDirectChat({ transaction_id = null } = {}) {
   starting.value = true
   startError.value = ''
   try {
-    await conv.begin({ user_id: 1, playBriefing: false })
+    // 거래를 눌러 들어온 경우에는 그 건을 읽어줘야 하므로 음성을 재생한다.
+    await conv.begin({ user_id: 1, transaction_id, playBriefing: !!transaction_id })
     await router.replace('/senior/chat')
   } catch (e) {
     startError.value = errorMessage(e)
@@ -46,7 +48,16 @@ async function startDirectChat() {
   }
 }
 
+/** 홈에서 "창구 갈 일 정리"로 바로 들어온 경우: 세션을 열고 곧장 요약서로 간다. */
+async function startCounter() {
+  await startDirectChat()
+  if (!startError.value) await conv.pressButton('GO_COUNTER')
+}
+
 onMounted(() => {
+  const tx = Number(route.query.tx)
+  if (Number.isFinite(tx) && tx > 0) return startDirectChat({ transaction_id: tx })
+  if (route.query.counter === 'true') return startCounter()
   if (route.query.start === 'true') return startDirectChat()
   if (!session.hasSession) router.replace('/senior/briefing')
 })
