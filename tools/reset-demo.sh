@@ -1,9 +1,31 @@
 #!/bin/bash
 # 시연 데이터 원상복구. 리허설 돌릴 때마다 실행.
-# 사용: ./tools/reset-demo.sh          (root 비번 물어봄)
+#
+# 사용:
+#   ./tools/reset-demo.sh                DB 만 리셋 (기본)
+#   ./tools/reset-demo.sh --with-audio   DB 리셋 + TTS 캐시까지 삭제
+#
+# ⚠️ 발표 직전에는 --with-audio 를 쓰지 마라.
+#    캐시가 비면 첫 재생부터 실시간 합성이 걸리고, 무료 티어 429 로 문장이 무음이 될 수 있다.
+#    모델·목소리를 바꾼 직후 한 번만 --with-audio 로 다시 굽고,
+#    리허설은 캐시를 남긴 채(옵션 없이) 돌려라.
 
-# TTS 캐시도 함께 비운다 — 리허설마다 모든 문장을 새 합성으로 다시 굽는다.
-"$(dirname "$0")/clear-audio-cache.sh"
+set -euo pipefail
+
+with_audio=0
+for arg in "$@"; do
+  case "$arg" in
+    --with-audio) with_audio=1 ;;
+    -h|--help) sed -n '2,11p' "$0"; exit 0 ;;
+    *) echo "알 수 없는 옵션: $arg (사용법은 --help)" >&2; exit 2 ;;
+  esac
+done
+
+if [ "$with_audio" -eq 1 ]; then
+  "$(dirname "$0")/clear-audio-cache.sh"
+else
+  echo "── TTS 캐시는 그대로 둔다 (지우려면 --with-audio) ──"
+fi
 
 mysql -u root -p ttobak <<'SQL'
 DELETE FROM summary_items   WHERE summary_id >= 2;
