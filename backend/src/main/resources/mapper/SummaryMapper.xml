@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ttobak.backend.mapper.SummaryMapper">
+
+    <!-- ================= counter_summaries ================= -->
+    <sql id="summaryColumns">
+        s.id, s.user_id, u.name AS user_name, s.code, s.ticket_no, s.branch_name, s.status, s.created_at, s.updated_at
+    </sql>
+
+    <insert id="insertSummary" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO counter_summaries (user_id, code, ticket_no, branch_name, status)
+        VALUES (#{userId}, #{code}, #{ticketNo}, #{branchName}, #{status})
+    </insert>
+
+    <select id="findById" resultType="com.ttobak.backend.domain.CounterSummary">
+        SELECT <include refid="summaryColumns"/>
+        FROM counter_summaries s JOIN users u ON u.id = s.user_id
+        WHERE s.id = #{id}
+    </select>
+
+    <select id="findByCode" resultType="com.ttobak.backend.domain.CounterSummary">
+        SELECT <include refid="summaryColumns"/>
+        FROM counter_summaries s JOIN users u ON u.id = s.user_id
+        WHERE s.code = #{code}
+    </select>
+
+    <select id="maxTicketNo" resultType="java.lang.Integer">
+        SELECT MAX(ticket_no) FROM counter_summaries
+    </select>
+
+    <select id="countByCode" resultType="int">
+        SELECT COUNT(*) FROM counter_summaries WHERE code = #{code}
+    </select>
+
+    <update id="updateStatus">
+        UPDATE counter_summaries SET status = #{status} WHERE id = #{id}
+    </update>
+
+    <!-- 직원용 목록: 최근순, item_count 는 PREP 제외 -->
+    <select id="findForStaff" resultType="com.ttobak.backend.domain.StaffSummaryListItem">
+        SELECT s.id, s.code, s.ticket_no, u.name AS user_name, s.status, s.created_at,
+               (SELECT COUNT(*) FROM summary_items i WHERE i.summary_id = s.id AND i.section &lt;&gt; 'PREP') AS item_count
+        FROM counter_summaries s JOIN users u ON u.id = s.user_id
+        <where>
+            <if test="status != null and status != ''">s.status = #{status}</if>
+        </where>
+        ORDER BY s.created_at DESC, s.id DESC
+    </select>
+
+    <!-- ================= summary_items ================= -->
+    <sql id="itemColumns">
+        i.id, i.summary_id, i.section, i.ordinal, i.payload, i.handled, i.handled_at
+    </sql>
+
+    <insert id="insertItem" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO summary_items (summary_id, section, ordinal, payload, handled)
+        VALUES (#{summaryId}, #{section}, #{ordinal}, #{payload}, 0)
+    </insert>
+
+    <select id="findItems" resultType="com.ttobak.backend.domain.SummaryItemRow">
+        SELECT <include refid="itemColumns"/>
+        FROM summary_items i
+        WHERE i.summary_id = #{summaryId}
+        ORDER BY FIELD(i.section, 'REQUEST', 'QUESTION', 'PREP'), i.ordinal, i.id
+    </select>
+
+    <select id="findItem" resultType="com.ttobak.backend.domain.SummaryItemRow">
+        SELECT <include refid="itemColumns"/>
+        FROM summary_items i
+        WHERE i.summary_id = #{summaryId} AND i.id = #{itemId}
+    </select>
+
+    <update id="updateItemHandled">
+        UPDATE summary_items
+        SET handled    = #{handled},
+            handled_at = <choose><when test="handled">NOW()</when><otherwise>NULL</otherwise></choose>
+        WHERE id = #{itemId}
+    </update>
+
+</mapper>

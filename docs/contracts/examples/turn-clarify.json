@@ -1,0 +1,34 @@
+{
+  "assistant_text": "잘 못 들었어요. 이 중에 있나요?",
+  "audio_url": "/ai/audio/turn_sess_demo_0001_6.mp3",
+  "tone": "friendly",
+  "state": "CLARIFY",
+  "ui": {
+    "buttons": [
+      { "id": "REPEAT", "label": "다시 들려주세요", "kind": "secondary" },
+      { "id": "STOP", "label": "그만", "kind": "danger" }
+    ],
+    "choices": [
+      { "id": "INTENT:ASK_ABOUT_TX", "label": "방금 읽어준 돈이 뭔지 물어보기" },
+      { "id": "INTENT:REQUEST_TRANSFER", "label": "누구에게 돈 보내기 준비" },
+      { "id": "INTENT:GO_COUNTER", "label": "창구 갈 일 정리하기" }
+    ],
+    "listen": false
+  },
+  "actions": [],
+  "debug": {
+    "turn_no": 6,
+    "input_kind": "text",
+    "user_text": "으음 그 저기",
+    "intent": "UNKNOWN",
+    "intent_confidence": 0.3,
+    "candidates": [],
+    "matched_candidate": null,
+    "match_score": null,
+    "decision": "BUTTON",
+    "path": ["rule", "llm"],
+    "llm_used": true,
+    "state_before": "LISTENING",
+    "state_after": "CLARIFY"
+  }
+}

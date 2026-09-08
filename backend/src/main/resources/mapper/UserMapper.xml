@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ttobak.backend.mapper.UserMapper">
+
+    <select id="findById" resultType="com.ttobak.backend.domain.User">
+        SELECT id, name, birth_year, senior_mode, home_branch, created_at
+        FROM users
+        WHERE id = #{id}
+    </select>
+
+</mapper>

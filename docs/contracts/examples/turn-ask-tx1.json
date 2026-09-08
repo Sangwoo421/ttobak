@@ -1,0 +1,35 @@
+{
+  "assistant_text": "아드님 김철수 님이 보내신 돈이에요. 등록된 아들 통장에서 왔어요.",
+  "audio_url": "/ai/audio/turn_sess_demo_0001_1.mp3",
+  "tone": "friendly",
+  "state": "LISTENING",
+  "ui": {
+    "buttons": [
+      { "id": "ASK_MORE", "label": "더 물어보기", "kind": "primary" },
+      { "id": "GO_COUNTER", "label": "창구 갈 일 정리", "kind": "secondary" },
+      { "id": "STOP", "label": "그만", "kind": "danger" }
+    ],
+    "choices": [],
+    "listen": true
+  },
+  "actions": [],
+  "debug": {
+    "turn_no": 1,
+    "input_kind": "text",
+    "user_text": "첫 번째 거 그게 뭐야",
+    "intent": "ASK_ABOUT_TX",
+    "intent_confidence": 1.0,
+    "candidates": [
+      { "id": "TX:101", "label": "아드님 김철수 님 삼십만 원", "score": 0.92 },
+      { "id": "TX:102", "label": "한국전력 사만 이천 원", "score": 0.31 },
+      { "id": "TX:103", "label": "대한정보통신 만 구천 원", "score": 0.28 }
+    ],
+    "matched_candidate": "TX:101",
+    "match_score": 0.92,
+    "decision": "ACCEPT",
+    "path": ["rule", "jamo"],
+    "llm_used": false,
+    "state_before": "LISTENING",
+    "state_after": "LISTENING"
+  }
+}

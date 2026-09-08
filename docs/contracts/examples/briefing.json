@@ -1,0 +1,115 @@
+{
+  "user_id": 1,
+  "user_name": "김영자",
+  "remaining_count": 0,
+  "items": [
+    {
+      "ordinal": 1,
+      "notification_id": 1001,
+      "transaction": {
+        "id": 101,
+        "account_id": 1,
+        "type": "IN",
+        "amount": 300000,
+        "counterparty_name": "김철수",
+        "memo": "김철수",
+        "channel": "이체",
+        "occurred_at": "2026-09-07T15:12:00",
+        "counterparty_id": 1
+      },
+      "classification": {
+        "transaction_id": 101,
+        "level": "CONFIRMED",
+        "rule_id": "R1_REGISTERED_PERSON",
+        "spoken_name": "아드님 김철수 님",
+        "facts": [
+          "등록된 아들 김철수 님 계좌에서 온 돈입니다.",
+          "금액은 300,000원입니다.",
+          "어제 오후에 들어왔습니다.",
+          "보낸 은행은 KB국민은행입니다."
+        ],
+        "unknowns": [],
+        "counter_hint": null,
+        "counterparty": {
+          "id": 1,
+          "name": "김철수",
+          "relation": "아들",
+          "kind": "PERSON",
+          "bank_name": "KB국민은행",
+          "account_number_masked": "9876-54-****98",
+          "aliases": ["아들", "철수", "큰아들", "우리 아들"],
+          "category": null
+        }
+      }
+    },
+    {
+      "ordinal": 2,
+      "notification_id": 1002,
+      "transaction": {
+        "id": 102,
+        "account_id": 1,
+        "type": "OUT",
+        "amount": 42000,
+        "counterparty_name": "한국전력공사",
+        "memo": "한전 전기요금",
+        "channel": "자동이체",
+        "occurred_at": "2026-09-08T08:30:00",
+        "counterparty_id": 4
+      },
+      "classification": {
+        "transaction_id": 102,
+        "level": "PARTIAL",
+        "rule_id": "R2_REGISTERED_INSTITUTION",
+        "spoken_name": "한국전력",
+        "facts": [
+          "한국전력공사(전기요금)로 나간 돈입니다.",
+          "금액은 42,000원입니다.",
+          "오늘 아침에 나갔습니다.",
+          "매달 자동으로 나가는 돈입니다."
+        ],
+        "unknowns": ["정확한 청구 내역(기간·사용량)"],
+        "counter_hint": "한국전력공사 전기요금 청구 내역이 어떻게 되는지",
+        "counterparty": {
+          "id": 4,
+          "name": "한국전력공사",
+          "relation": "자동이체",
+          "kind": "INSTITUTION",
+          "bank_name": null,
+          "account_number_masked": null,
+          "aliases": ["한전", "전기세", "전기요금"],
+          "category": "전기요금"
+        }
+      }
+    },
+    {
+      "ordinal": 3,
+      "notification_id": 1003,
+      "transaction": {
+        "id": 103,
+        "account_id": 1,
+        "type": "OUT",
+        "amount": 19000,
+        "counterparty_name": "대한정보통신",
+        "memo": "대한정보통신",
+        "channel": "자동이체",
+        "occurred_at": "2026-09-08T09:10:00",
+        "counterparty_id": null
+      },
+      "classification": {
+        "transaction_id": 103,
+        "level": "UNKNOWN",
+        "rule_id": "R5_UNKNOWN",
+        "spoken_name": "'대한정보통신'이라는 곳",
+        "facts": [
+          "통장에 '대한정보통신'이라고 적혀 있습니다.",
+          "금액은 19,000원입니다.",
+          "오늘 아침에 나갔습니다.",
+          "자동이체로 나갔습니다."
+        ],
+        "unknowns": ["무엇에 대한 돈인지", "누가 청구했는지"],
+        "counter_hint": "'대한정보통신' 19,000원 오늘 출금이 무엇인지",
+        "counterparty": null
+      }
+    }
+  ]
+}

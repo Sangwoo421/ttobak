@@ -1,0 +1,296 @@
+openapi: 3.0.3
+info:
+  title: 또박또박 AI Server API
+  version: 0.1.0
+  description: |
+    음성(STT/TTS)·대화(상태 머신 + LLM)·어르신 모드 말투를 담당한다. Python FastAPI.
+    - JSON 필드는 snake_case.
+    - 오디오는 항상 audio_url 로 돌려주고, 프론트가 <audio> 로 재생한다. (/ai/audio/{file})
+    - 판정·분류는 하지 않는다. 백엔드의 classification 결과(facts)만 가지고 말한다.
+    - 돈이 움직이는 행위는 실행하지 않는다. ADD_REQUEST 는 "창구 요청 목록에 담기"일 뿐이다.
+servers:
+  - url: http://localhost:8000
+
+paths:
+  /ai/health:
+    get:
+      summary: 헬스체크 (어떤 provider 가 활성인지 포함)
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string }
+                  stt: { type: string, example: openai }
+                  tts: { type: string, example: openai }
+                  llm: { type: string, example: openai }
+                  backend_mode: { type: string, example: http }
+
+  /ai/session/start:
+    post:
+      summary: 알림 탭 → 세션 생성 + 브리핑 문장·음성 생성
+      description: |
+        1. 백엔드 GET /api/users/{id}/briefing 호출
+        2. 어르신 모드 템플릿으로 브리핑 문장 생성 (금액은 한국어 수사 "삼십만 원")
+        3. TTS(친근 톤) → audio_url
+        4. 각 항목 POST /api/notifications/{id}/heard
+        5. 상태 = LISTENING, 후보 목록(거래 3건 + 수취인 + 의도)을 세션에 저장
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id]
+              properties:
+                user_id: { type: integer, example: 1 }
+                notification_id: { type: integer, nullable: true, description: 눌러서 들어온 알림. 없어도 됨 }
+                mode: { type: string, enum: [layered, baseline], default: layered, description: 측정용. baseline 은 레이어 미적용 }
+      responses:
+        "200":
+          description: 세션과 브리핑
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SessionStartResponse" }
+              example: { $ref: "./examples/session-start.json" }
+
+  /ai/stt:
+    post:
+      summary: 오디오 → 텍스트. 세션의 수취인·거래 상대명을 어휘 힌트로 함께 넘긴다.
+      description: |
+        레이어 "입력 시": prompt 힌트 = 세션 후보의 이름·별칭·금액 표현.
+        mode=baseline 이면 힌트 없이 호출한다(측정용).
+        오디오 원본은 저장하지 않는다(임시 파일은 처리 후 삭제).
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [audio, session_id]
+              properties:
+                audio: { type: string, format: binary, description: webm/ogg/wav/mp3 }
+                session_id: { type: string }
+      responses:
+        "200":
+          description: 전사 결과
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [text]
+                properties:
+                  text: { type: string, example: "첫 번째 거 그게 뭐야" }
+                  hints_used: { type: array, items: { type: string } }
+                  duration_ms: { type: integer }
+                  provider: { type: string }
+
+  /ai/turn:
+    post:
+      summary: 대화 1턴. 텍스트(STT 결과) 또는 버튼/선택지 중 하나를 받는다.
+      description: |
+        레이어 "입력 후": 텍스트를 교정하지 않고 화면 후보와 대조한다.
+        - 의도: 키워드 규칙 → 없으면 LLM 구조화 분류 → 확신 < INTENT_MIN_CONF 이면 CLARIFY
+        - 개체(거래 항목/수취인): 자모 편집거리 유사도 → ≥0.8 채택 / 0.6~0.8 되묻기 / 상위 둘 차 <0.1 LLM 선택 / <0.6 버튼
+        - 상태 전이는 docs/contracts/dialog-state-machine.md
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [session_id]
+              properties:
+                session_id: { type: string }
+                text: { type: string, nullable: true, description: STT 결과 또는 타이핑 }
+                button_id: { type: string, nullable: true, description: ASK_MORE | GO_COUNTER | STOP | YES | NO | REPEAT }
+                choice_id: { type: string, nullable: true, description: CLARIFY 선택지 id. "TX:101" | "CP:1" | "INTENT:REQUEST_TRANSFER" }
+      responses:
+        "200":
+          description: 응답
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TurnResponse" }
+              examples:
+                ask_tx1: { $ref: "./examples/turn-ask-tx1.json" }
+                ask_tx3_unknown: { $ref: "./examples/turn-ask-tx3-unknown.json" }
+                request_transfer_confirm: { $ref: "./examples/turn-request-transfer-confirm.json" }
+                clarify: { $ref: "./examples/turn-clarify.json" }
+        "404": { description: 없는 세션 }
+
+  /ai/tts:
+    post:
+      summary: 텍스트 → 음성 (톤 지정). 같은 텍스트+톤은 캐시 재사용.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text: { type: string }
+                tone: { type: string, enum: [friendly, confirm], default: friendly }
+      responses:
+        "200":
+          description: 오디오 URL
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  audio_url: { type: string, example: /ai/audio/3f2a...c1.mp3 }
+                  cached: { type: boolean }
+
+  /ai/session/{session_id}/summary:
+    post:
+      summary: 세션에 쌓인 창구 요청·질문을 백엔드 요약서로 저장하고 안내 문장·음성을 만든다.
+      parameters:
+        - { name: session_id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: 요약서 안내
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SessionSummaryResponse" }
+              example: { $ref: "./examples/session-summary.json" }
+
+  /ai/session/{session_id}/debug:
+    get:
+      summary: 세션 내부 상태 (시연 디버그 패널·측정용)
+      parameters:
+        - { name: session_id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: 상태
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  session_id: { type: string }
+                  state: { type: string }
+                  mode: { type: string }
+                  candidates: { type: array, items: { $ref: "#/components/schemas/Candidate" } }
+                  pending_request: { type: object, nullable: true }
+                  requests: { type: array, items: { type: object } }
+                  questions: { type: array, items: { type: object } }
+                  turns: { type: array, items: { $ref: "#/components/schemas/TurnDebug" } }
+
+  /ai/audio/{file}:
+    get:
+      summary: 생성된 음성 파일
+      parameters:
+        - { name: file, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: audio/mpeg 또는 audio/wav }
+
+components:
+  schemas:
+    Button:
+      type: object
+      required: [id, label]
+      properties:
+        id: { type: string, example: ASK_MORE }
+        label: { type: string, example: 더 물어보기 }
+        kind: { type: string, enum: [primary, secondary, danger], default: secondary }
+
+    Choice:
+      type: object
+      required: [id, label]
+      properties:
+        id: { type: string, example: "TX:101" }
+        label: { type: string, example: 아드님 김철수 님 삼십만 원 }
+
+    Candidate:
+      type: object
+      properties:
+        id: { type: string, example: "CP:1" }
+        kind: { type: string, enum: [TX, CP, INTENT] }
+        label: { type: string }
+        surface_forms: { type: array, items: { type: string }, description: 대조에 쓰는 표면형(이름·별칭·서수) }
+
+    BriefingItemSpoken:
+      type: object
+      properties:
+        ordinal: { type: integer }
+        notification_id: { type: integer }
+        transaction_id: { type: integer }
+        level: { type: string, enum: [CONFIRMED, PARTIAL, UNKNOWN] }
+        short_label: { type: string, example: 아드님 김철수 님 삼십만 원 }
+        spoken_sentence: { type: string }
+
+    SessionStartResponse:
+      type: object
+      required: [session_id, state, briefing, ui, tone]
+      properties:
+        session_id: { type: string }
+        state: { type: string, example: LISTENING }
+        tone: { type: string, enum: [friendly, confirm] }
+        briefing:
+          type: object
+          properties:
+            text: { type: string }
+            audio_url: { type: string }
+            items: { type: array, items: { $ref: "#/components/schemas/BriefingItemSpoken" } }
+            remaining_count: { type: integer }
+        ui:
+          type: object
+          properties:
+            buttons: { type: array, items: { $ref: "#/components/schemas/Button" } }
+            silence_ms: { type: integer, example: 2000, description: 프론트 VAD 침묵 대기값 }
+
+    Action:
+      type: object
+      required: [type]
+      properties:
+        type: { type: string, enum: [ADD_QUESTION, ADD_REQUEST, OPEN_SUMMARY, MUTE, END] }
+        payload: { type: object }
+
+    TurnDebug:
+      type: object
+      properties:
+        turn_no: { type: integer }
+        input_kind: { type: string, enum: [text, button, choice] }
+        user_text: { type: string, nullable: true }
+        intent: { type: string, nullable: true }
+        intent_confidence: { type: number, nullable: true }
+        candidates: { type: array, items: { type: object, properties: { id: { type: string }, label: { type: string }, score: { type: number } } } }
+        matched_candidate: { type: string, nullable: true }
+        match_score: { type: number, nullable: true }
+        decision: { type: string, enum: [ACCEPT, ASK_AGAIN, BUTTON, LLM_TIEBREAK, NA] }
+        path: { type: array, items: { type: string }, example: [rule, jamo] }
+        llm_used: { type: boolean }
+        state_before: { type: string }
+        state_after: { type: string }
+
+    TurnResponse:
+      type: object
+      required: [assistant_text, audio_url, tone, state, ui, actions, debug]
+      properties:
+        assistant_text: { type: string }
+        audio_url: { type: string }
+        tone: { type: string, enum: [friendly, confirm] }
+        state: { type: string }
+        ui:
+          type: object
+          properties:
+            buttons: { type: array, items: { $ref: "#/components/schemas/Button" } }
+            choices: { type: array, items: { $ref: "#/components/schemas/Choice" }, description: CLARIFY 일 때만 채움 }
+            listen: { type: boolean, description: true 면 프론트가 바로 마이크를 켠다 }
+        actions: { type: array, items: { $ref: "#/components/schemas/Action" } }
+        debug: { $ref: "#/components/schemas/TurnDebug" }
+
+    SessionSummaryResponse:
+      type: object
+      properties:
+        summary_id: { type: integer }
+        code: { type: string }
+        ticket_no: { type: integer }
+        branch_name: { type: string }
+        spoken_text: { type: string }
+        audio_url: { type: string }
+        tone: { type: string }

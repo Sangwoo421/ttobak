@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ttobak.backend.mapper.DialogLogMapper">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO dialog_logs (session_id, user_id, turn_no, user_text, intent, confidence, matched, decision, state)
+        VALUES (#{sessionId}, #{userId}, #{turnNo}, #{userText}, #{intent}, #{confidence}, #{matched}, #{decision}, #{state})
+    </insert>
+
+</mapper>
