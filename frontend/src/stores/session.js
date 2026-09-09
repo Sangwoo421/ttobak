@@ -29,8 +29,8 @@ export const useSessionStore = defineStore('session', {
     effectiveSilenceMs: (s) => s.silenceOverride ?? s.silenceMs ?? 2000,
     isConfirm: (s) => s.tone === 'confirm',
     hasSession: (s) => !!s.session_id,
-    /** 화면 하단에 그릴 버튼 (STOP 은 헤더에 항상 따로 있으므로 뺀다) */
-    mainButtons: (s) => (s.buttons || []).filter((b) => b.id !== 'STOP'),
+    /** 화면 하단에 그릴 버튼. STOP(대화 종료)도 이제 헤더가 아니라 여기 큰 버튼으로 나온다. */
+    mainButtons: (s) => s.buttons || [],
   },
 
   actions: {
@@ -100,7 +100,7 @@ export const useSessionStore = defineStore('session', {
 
     /** 버튼 턴. 말풍선에는 버튼 라벨을 남긴다 */
     sendButton(button_id) {
-      const label = (this.buttons || []).find((b) => b.id === button_id)?.label || { STOP: '그만' }[button_id] || button_id
+      const label = (this.buttons || []).find((b) => b.id === button_id)?.label || { STOP: '대화 종료' }[button_id] || button_id
       return this._turn({ button_id }, label)
     },
 

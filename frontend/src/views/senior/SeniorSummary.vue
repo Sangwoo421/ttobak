@@ -78,6 +78,11 @@ async function replay() {
   return conv.replayLast()
 }
 
+function goHome() {
+  player.stop()
+  router.push('/mock/home')
+}
+
 onMounted(async () => {
   await load()
   if (active) await poll()
