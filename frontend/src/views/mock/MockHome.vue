@@ -93,7 +93,9 @@ function outOfScope(label) {
     <header class="kb-top">
       <span class="logo">KB스타뱅킹</span>
       <span class="header-actions">
-        <button type="button" class="senior-toggle" @click="appMode.enable()">간편 모드</button>
+        <button type="button" class="senior-toggle" @click="appMode.enable()">
+          <span>간편 모드</span>
+        </button>
         <button type="button" class="logout" @click="logout">로그아웃</button>
       </span>
     </header>
@@ -429,6 +431,9 @@ function outOfScope(label) {
 
 /* 어르신 모드 진입. 기획서의 "기존 앱 안의 부가 모드" 전제가 화면에서 보여야 한다. */
 .senior-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   min-height: 40px;
   padding: 0 14px;
   border: 0;

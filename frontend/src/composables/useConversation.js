@@ -167,6 +167,14 @@ export function useConversation() {
 
   /** 버튼 (ASK_MORE / GO_COUNTER / STOP / YES / NO / REPEAT) */
   function pressButton(button_id) {
+    // GO_COUNTER: ai-server 는 세션 단위로만 판단해서, 지금 대화에서 새로 담은 게
+    // 하나도 없으면 이전에 만들어 둔 요약서가 있어도 "전달할 내용 없음"으로 답한다.
+    // 그 요약서를 아는 건 프론트뿐이라 여기서 먼저 확인해 안내한다.
+    if (button_id === 'GO_COUNTER' && session.counterItems.length === 0 && session.latest_summary_id) {
+      session.pushMessage('assistant', '이미 정리해 둔 창구 요약서가 있어요. 보여드릴게요.')
+      routerRef?.push(`/senior/summary/${session.latest_summary_id}`)
+      return Promise.resolve(null)
+    }
     if (button_id === 'STOP') stopping.value = true
     interrupt()
     return runTurn(session.sendButton(button_id))

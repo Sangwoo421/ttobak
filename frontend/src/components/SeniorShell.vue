@@ -3,11 +3,14 @@ import { useRouter } from 'vue-router'
 import DevPanel from './DevPanel.vue'
 import { useConversation } from '@/composables/useConversation'
 
-// 어르신 화면 공통 껍데기: 헤더(뒤로가기 · 제목) + 개발 패널 + 토스트.
+// 어르신 화면 공통 껍데기: 헤더(뒤로가기 · 제목 · 오른쪽 슬롯) + 개발 패널 + 토스트.
 //
 // 헤더에는 나가는 길 하나만 둔다. 예전에는 뒤로가기와 "그만"이 나란히 있었는데, 어르신
 // 입장에서는 둘 다 "이 화면에서 나가기"라 구분이 안 되고 policy §6 의 "한 화면에 버튼 3개
 // 이하"도 넘겼다. 상담 화면의 "그만" 버튼도 제거해 뒤로가기만 종료 동작을 맡는다.
+//
+// 시각 규칙(design/A_Chat.dc.html · A안 마감본): 흰 헤더 + 머리카락 선, 테두리 있는 뒤로가기,
+// 색은 노랑 하나. 여기서 정한 CSS 변수를 BigButton·SpeechBubble·MicButton 이 그대로 쓴다.
 defineProps({
   // 제목은 서비스 이름이 아니라 '지금 이 화면에서 뭘 하는지'를 말한다.
   title: { type: String, default: '물어보기' },
@@ -44,7 +47,7 @@ function holdEnd() {
       <button v-if="back" type="button" class="back" aria-label="홈으로 돌아가기" @click="goHome">
         <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
           <path d="M15 5 L8 12 L15 19" fill="none" stroke="currentColor"
-                stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" />
+                stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
       </button>
       <h1
@@ -55,6 +58,7 @@ function holdEnd() {
         @pointercancel="holdEnd"
         @contextmenu.prevent
       >{{ title }}</h1>
+      <div class="right"><slot name="right" /></div>
     </header>
 
     <DevPanel v-if="conv.devOpen.value" />
@@ -71,57 +75,53 @@ function holdEnd() {
 
 <style scoped>
 .shell {
-  --kb-yellow: #fff;
-  --kb-yellow-dark: #d4a300;
-  --kb-yellow-soft: #f1efe9;
-  --primary: #fff;
-  --primary-text: #2b2620;
-  --confirm-bg: #f6f4ed;
-  --confirm-border: #5f543e;
-  --confirm-text: #2b2620;
-  --warn-bg: #efede7;
-  --warn: #665c4c;
+  /* 확인 톤(policy §3)만 이 화면에서 따로 잡는다. 나머지 색은 base.css 의 A안 팔레트를 그대로 쓴다. */
+  --confirm-bg: #fbf9f4;
+  --confirm-border: #17161a;
+  --confirm-text: #17161a;
   display: flex;
   flex-direction: column;
   flex: 1;
   min-height: 100%;
+  background: var(--paper);
 }
 
+/* 머리글은 돌아가는 길과 지금 뭘 하는 화면인지, 둘만. */
 .top {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
+  gap: 14px;
+  padding: 14px 18px;
   background: #fff;
-  border-bottom: 3px solid #ffbc00;
+  border-bottom: 1px solid #edebe5;
   position: sticky;
   top: 0;
   z-index: 5;
 }
 
 .back {
-  width: 52px;
-  height: 52px;
+  width: 48px;
+  height: 48px;
   flex: none;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 14px;
-  border: 2px solid #c8c0b1;
+  border: 1px solid #e6e3dc;
   background: #fff;
-  color: #2b2620;
+  color: #3d3a34;
   padding: 0;
   cursor: pointer;
 }
 
 .back svg {
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   display: block;
 }
 
 .back:active {
-  background: #fff;
+  background: var(--paper);
 }
 
 .back:focus-visible {
@@ -132,9 +132,10 @@ function holdEnd() {
 .title {
   flex: 1;
   margin: 0;
-  font-size: 24px;
-  font-weight: 900;
-  color: #2b2620;
+  font-size: 23px;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.5px;
   line-height: 1.25;
   /* "들어오고 나 / 간 돈" 처럼 단어 중간에서 깨지지 않게 어절 단위로만 접는다 */
   word-break: keep-all;
@@ -155,14 +156,14 @@ function holdEnd() {
   left: 50%;
   bottom: 120px;
   transform: translateX(-50%);
-  background: #fff;
-  color: #2b2620;
-  border: 3px solid #d4a300;
+  background: var(--ink);
+  color: #fff;
+  border: none;
   padding: 14px 22px;
   border-radius: 999px;
-  font-size: 22px;
-  font-weight: 800;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+  font-size: 19px;
+  font-weight: 700;
+  box-shadow: 0 12px 30px rgba(23, 22, 26, 0.3);
   z-index: 20;
   white-space: nowrap;
 }
@@ -180,22 +181,22 @@ function holdEnd() {
 
 @media (max-width: 360px) {
   .top {
-    gap: 4px;
-    padding: 8px;
+    gap: 10px;
+    padding: 12px 14px;
   }
 
   .title {
-    font-size: 22px;
+    font-size: 21px;
   }
 
   .back {
-    width: 46px;
-    height: 46px;
+    width: 44px;
+    height: 44px;
   }
 
   .back svg {
-    width: 23px;
-    height: 23px;
+    width: 22px;
+    height: 22px;
   }
 }
 </style>

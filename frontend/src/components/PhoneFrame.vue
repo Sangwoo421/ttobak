@@ -61,7 +61,7 @@ const clock = computed(() => {
 
 .phone {
   width: 100%;
-  max-width: 430px;
+  max-width: 417px; /* 안쪽 393px = 실제 폰(iPhone 15 계열) CSS 폭. 테두리 12px 포함 */
   height: 100vh;
   height: 100dvh;
   background: var(--bg);
@@ -166,7 +166,7 @@ const clock = computed(() => {
   }
 
   .phone {
-    height: min(880px, calc(100dvh - 48px));
+    height: min(876px, calc(100dvh - 48px)); /* 안쪽 852px → 393:852, 실제 폰 비율 */
     border: 12px solid #17171a;
     border-radius: 44px;
     box-shadow:

@@ -38,7 +38,29 @@ const REQUEST_TYPE = { TRANSFER: '보내기(이체)' }
         <label v-if="checkable" class="check">
           <input type="checkbox" :checked="item.handled" @change="emit('toggle', item, $event.target.checked)" />
         </label>
-        <div class="body">
+
+        <!-- 어르신: 무엇을 / 누구에게 / 얼마 — 세 줄이면 충분하다. 표는 직원 화면에만. -->
+        <div v-if="size === 'senior'" class="body senior-request">
+          <div class="chip-row">
+            <span class="type-chip">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14" /><path d="m13 6 6 6-6 6" /></svg>
+              {{ REQUEST_TYPE[item.payload.type] || item.payload.type }}
+            </span>
+            <span class="chip-note">{{ item.handled ? '처리됐어요' : '직원 확인 후 진행' }}</span>
+          </div>
+          <p class="to">
+            <template v-if="item.payload.recipient_relation">{{ item.payload.recipient_relation }} </template>{{ item.payload.recipient_name }} 님에게
+          </p>
+          <p class="amount-row">
+            <span class="amount-num num">{{ Number(item.payload.amount || 0).toLocaleString('ko-KR') }}</span><span class="amount-unit">원</span>
+          </p>
+          <p class="acct num">
+            {{ item.payload.recipient_bank || '-' }}<template v-if="item.payload.recipient_account_masked"> · {{ item.payload.recipient_account_masked }}</template>
+          </p>
+          <p v-if="item.payload.note" class="note">{{ item.payload.note }}</p>
+        </div>
+
+        <div v-else class="body">
           <div class="title-row">
             <div class="title">{{ REQUEST_TYPE[item.payload.type] || item.payload.type }}</div>
             <span v-if="checkable" class="item-state">{{ item.handled ? '처리 완료' : '확인 필요' }}</span>
@@ -72,22 +94,31 @@ const REQUEST_TYPE = { TRANSFER: '보내기(이체)' }
           <input type="checkbox" :checked="item.handled" @change="emit('toggle', item, $event.target.checked)" />
         </label>
         <div class="body">
+          <div v-if="size === 'senior'" class="chip-row">
+            <span class="ask-chip">{{ item.handled ? '답 들었어요' : '확인 안 됨' }}</span>
+            <span v-if="item.payload.transaction_id" class="chip-note">앱에서 확인되지 않은 거래</span>
+          </div>
           <div class="title-row">
             <div class="title">{{ item.payload.text }}</div>
             <span v-if="checkable" class="item-state">{{ item.handled ? '처리 완료' : '확인 필요' }}</span>
           </div>
-          <div v-if="item.payload.transaction_id" class="muted sub">거래 #{{ item.payload.transaction_id }}</div>
+          <div v-if="size !== 'senior' && item.payload.transaction_id" class="muted sub">거래 #{{ item.payload.transaction_id }}</div>
         </div>
       </div>
     </section>
 
     <!-- 3. 준비물 -->
     <section class="prep-section">
-      <h2>준비물</h2>
+      <h2>{{ size === 'senior' ? '가져가실 것' : '준비물' }}</h2>
       <p v-if="!preps.length" class="muted">없음</p>
       <ul class="preps">
         <li v-for="item in preps" :key="item.id" :class="{ required: item.payload.required }">
-          {{ item.payload.item }}<span v-if="item.payload.required" class="req">(필수)</span>
+          <span v-if="size === 'senior'" class="prep-mark" :class="{ on: item.payload.required }" aria-hidden="true">
+            <svg v-if="item.payload.required" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5" /></svg>
+          </span>
+          <span class="prep-name">{{ item.payload.item }}</span>
+          <span v-if="item.payload.required" class="req">{{ size === 'senior' ? '꼭 필요해요' : '(필수)' }}</span>
+          <span v-else-if="size === 'senior'" class="opt">있으면 좋아요</span>
         </li>
       </ul>
     </section>
@@ -472,4 +503,229 @@ dd.amount {
     grid-template-columns: 70px minmax(0, 1fr);
   }
 }
+
+/* ============================================================ 어르신 화면 (A안 마감본)
+   구획은 작은 회색 라벨 + 흰 카드. 번호·선·그림자 장식은 없다. 상태는 알약 하나.
+   아래 규칙이 위의 senior 규칙보다 뒤에 있어 이긴다. */
+.summary-card.senior {
+  gap: 22px;
+}
+
+.summary-card.senior .num { font-variant-numeric: tabular-nums; }
+
+.summary-card.senior section {
+  padding: 20px 22px 22px;
+  border: 1px solid var(--card-line, #e9e6df);
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: var(--soft, 0 1px 2px rgba(23, 22, 26, 0.04), 0 8px 24px rgba(23, 22, 26, 0.05));
+}
+
+.summary-card.senior section h2 {
+  margin: 0 0 14px;
+  padding: 0;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  color: var(--ink-4, #9a968c);
+}
+
+.summary-card.senior section h2::before { content: none; }
+
+.summary-card.senior .item {
+  padding: 0;
+  border-top: 0;
+}
+
+.summary-card.senior .item + .item {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--hairline, #f0eeea);
+}
+
+.summary-card.senior .item.handled .body {
+  opacity: 0.55;
+  text-decoration: none;
+}
+
+.summary-card.senior .muted {
+  margin: 0;
+  font-size: 18px;
+  color: var(--ink-3, #85817a);
+}
+
+.summary-card.senior .chip-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.summary-card.senior .type-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px 6px 10px;
+  border-radius: 999px;
+  background: var(--kb-yellow, #ffbc00);
+  color: var(--ink, #17161a);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.summary-card.senior .type-chip svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.summary-card.senior .ask-chip {
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: var(--bad-bg, #fdecec);
+  color: var(--bad, #c5221f);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.summary-card.senior .item.handled .ask-chip {
+  background: var(--ok-bg);
+  color: var(--ok);
+}
+
+.summary-card.senior .chip-note {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-5, #b3afa6);
+  text-align: right;
+  word-break: keep-all;
+}
+
+.summary-card.senior .to {
+  margin: 0 0 4px;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: var(--ink, #17161a);
+  word-break: keep-all;
+}
+
+.summary-card.senior .amount-row {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin: 0 0 12px;
+  color: var(--ink, #17161a);
+}
+
+.summary-card.senior .amount-num {
+  font-size: 36px;
+  font-weight: 800;
+  letter-spacing: -1.4px;
+  line-height: 1.1;
+}
+
+.summary-card.senior .amount-unit {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.summary-card.senior .acct {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink-3, #85817a);
+}
+
+.summary-card.senior .note {
+  margin: 8px 0 0;
+  font-size: 16px;
+  color: var(--ink-2, #4a463f);
+}
+
+.summary-card.senior .question-section .title {
+  margin: 0;
+  font-size: 21px;
+  font-weight: 800;
+  line-height: 1.5;
+  letter-spacing: -0.4px;
+  color: var(--ink, #17161a);
+  word-break: keep-all;
+}
+
+.summary-card.senior .prep-section {
+  padding: 4px 22px;
+}
+
+.summary-card.senior .prep-section h2 {
+  margin: 16px 0 6px;
+}
+
+.summary-card.senior .preps li {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 60px;
+  padding: 14px 0;
+  border-top: 1px solid var(--hairline, #f0eeea);
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+  color: var(--ink-2, #4a463f);
+}
+
+.summary-card.senior .preps li.required {
+  font-weight: 800;
+  color: var(--ink, #17161a);
+}
+
+.summary-card.senior .preps li::before { content: none; }
+
+.summary-card.senior .prep-mark {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid #d9d5cc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.summary-card.senior .prep-mark.on {
+  border-color: var(--ok);
+  background: var(--ok);
+}
+
+.summary-card.senior .prep-mark svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: #fff;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.summary-card.senior .prep-name { flex: 1; }
+
+.summary-card.senior .req {
+  margin-left: auto;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--bad, #c5221f);
+}
+
+.summary-card.senior .opt {
+  margin-left: auto;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-5, #b3afa6);
+}
+
 </style>

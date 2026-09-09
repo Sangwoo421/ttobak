@@ -1,7 +1,8 @@
 <script setup>
 import { computed } from 'vue'
 
-// 큰 마이크 버튼. 듣는 중이면 빨갛게 (누르면 바로 끝내고 보낸다).
+// 큰 마이크 버튼. 이 화면의 주 입력 수단이라 가장 진한 면(검정)을 여기 하나에만 쓴다.
+// 듣는 중이면 빨갛게 (누르면 바로 끝내고 보낸다).
 const props = defineProps({
   status: { type: String, default: 'idle' }, // idle | listening | processing | speaking
   disabled: { type: Boolean, default: false },
@@ -27,8 +28,11 @@ const label = computed(() => {
     @click="$emit('click')"
   >
     <span class="icon" aria-hidden="true">
-      <svg viewBox="0 0 24 24" width="36" height="36" fill="currentColor">
-        <path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z" />
+      <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor"
+           stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 3a3 3 0 0 1 3 3v5a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3z" />
+        <path d="M19 11a7 7 0 0 1-14 0" />
+        <path d="M12 18v3" />
       </svg>
     </span>
     <span class="txt">{{ label }}</span>
@@ -38,27 +42,35 @@ const label = computed(() => {
 <style scoped>
 .mic-btn {
   width: 100%;
-  min-height: 84px;
+  min-height: 88px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  border-radius: 999px;
-  border: 4px solid #d4a300;
-  background: #fff;
-  color: #2b2620;
+  gap: 13px;
+  border-radius: 22px;
+  border: none;
+  background: var(--ink);
+  color: #fff;
   font-size: 24px;
-  font-weight: 900;
-  transition: background 0.15s ease;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  box-shadow: 0 10px 26px rgba(23, 22, 26, 0.22);
+  transition: transform 0.08s ease, background 0.15s ease;
+}
+
+.mic-btn:active {
+  transform: scale(0.985);
 }
 
 .mic-btn.md {
-  min-height: 72px;
+  min-height: 76px;
   font-size: 22px;
+  border-radius: 18px;
 }
 
 .mic-btn:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
+  box-shadow: none;
 }
 
 .mic-btn:focus-visible {
@@ -68,14 +80,12 @@ const label = computed(() => {
 
 .mic-btn.listening {
   background: var(--bad);
-  border-color: var(--bad);
-  animation: pulse 1.2s infinite;
+  box-shadow: 0 10px 26px rgba(197, 34, 31, 0.28);
 }
 
 .mic-btn.processing {
-  background: #fff;
-  border-color: #9a9388;
-  color: #5f5a52;
+  background: #6b675e;
+  box-shadow: none;
 }
 
 .icon {

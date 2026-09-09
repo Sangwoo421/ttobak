@@ -9,21 +9,26 @@ const props = defineProps({
 
 const LABELS = {
   idle: '말씀하세요',
-  listening: '듣고 있어요',
+  listening: '듣고 있어요, 말씀하세요',
   processing: '생각 중이에요',
   speaking: '읽어드리는 중이에요',
   off: '',
 }
 
 const label = computed(() => LABELS[props.status] ?? props.status)
-const meter = computed(() => Math.min(100, Math.round(props.level * 400)))
+// 막대는 늘 같은 리듬으로 흔들리고, 목소리 크기는 그 진폭을 키운다.
+// 소리가 없을 때 완전히 멈추면 "고장 났나" 싶어져서 최소 진폭을 남겨 둔다.
+const amp = computed(() => Math.min(1.7, 0.62 + props.level * 2.4).toFixed(2))
 </script>
 
 <template>
   <div v-if="status !== 'off'" class="mic-status" :class="status" role="status" aria-live="polite">
-    <span class="dot" />
+    <!-- 듣는 중일 때만 움직인다. 화면에서 움직이는 것이 여기 하나뿐이라 눈이 바로 온다. -->
+    <span v-if="status === 'listening'" class="bars" :style="{ transform: `scaleY(${amp})` }" aria-hidden="true">
+      <span class="bar" /><span class="bar" /><span class="bar" /><span class="bar" />
+    </span>
+    <span v-else class="dot" aria-hidden="true" />
     <span class="label">{{ label }}</span>
-    <span v-if="status === 'listening'" class="meter"><span class="fill" :style="{ width: meter + '%' }" /></span>
   </div>
 </template>
 
@@ -31,74 +36,60 @@ const meter = computed(() => Math.min(100, Math.round(props.level * 400)))
 .mic-status {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 10px;
-  padding: 10px 16px;
-  border-radius: 999px;
-  font-size: var(--senior-font);
-  font-weight: 800;
-  background: #eee;
-  color: #333;
+  min-height: 24px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ink-3);
 }
 
 .dot {
-  width: 18px;
-  height: 18px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
-  background: #999;
+  background: var(--ink-5);
   flex: none;
 }
 
-.mic-status.idle {
-  background: var(--ok-bg);
-  color: var(--ok);
+.bars {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 18px;
+  flex: none;
+  transform-origin: center;
+  transition: transform 0.08s linear;
 }
 
-.mic-status.idle .dot {
+.bar {
+  width: 4px;
+  border-radius: 2px;
   background: var(--ok);
+  animation: bar 1.1s ease-in-out infinite;
 }
 
-.mic-status.listening {
-  background: var(--bad-bg);
-  color: var(--bad);
+.bar:nth-child(2) { animation-delay: 0.18s; }
+.bar:nth-child(3) { animation-delay: 0.36s; }
+.bar:nth-child(4) { animation-delay: 0.54s; }
+
+@keyframes bar {
+  0%, 100% { height: 6px; }
+  50% { height: 18px; }
 }
 
-.mic-status.listening .dot {
-  background: var(--bad);
-  animation: pulse 1s infinite;
+@media (prefers-reduced-motion: reduce) {
+  .bar { animation: none; height: 14px; }
 }
 
-.mic-status.processing {
-  background: var(--warn-bg);
-  color: var(--warn);
-}
+.mic-status.idle { color: var(--ink-3); }
+.mic-status.listening { color: var(--ok); }
+.mic-status.processing { color: var(--warn); }
+.mic-status.speaking { color: #1a56b0; }
 
-.mic-status.processing .dot {
-  background: var(--warn);
-  animation: pulse 1.4s infinite;
-}
-
-.mic-status.speaking {
-  background: #e3ecfb;
-  color: #1a56b0;
-}
-
+.mic-status.processing .dot,
 .mic-status.speaking .dot {
-  background: #1a56b0;
-  animation: pulse 1.2s infinite;
-}
-
-.meter {
-  flex: 1;
-  height: 10px;
-  background: rgba(0, 0, 0, 0.08);
-  border-radius: 5px;
-  overflow: hidden;
-}
-
-.meter .fill {
-  display: block;
-  height: 100%;
-  background: var(--bad);
-  transition: width 0.05s linear;
+  background: currentColor;
+  animation: pulse 1.3s infinite;
 }
 </style>
