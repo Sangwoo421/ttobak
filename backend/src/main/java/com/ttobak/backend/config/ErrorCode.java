@@ -25,6 +25,18 @@ public enum ErrorCode {
     COUNTERPARTY_NOT_OWNED("E108", "등록되지 않은 수취인입니다", HttpStatus.BAD_REQUEST),
     EMPTY_SUMMARY("E109", "요약서에 저장할 내용이 없습니다", HttpStatus.BAD_REQUEST),
 
+    // ---- 간편 로그인 ----
+    AUTH_INVALID_CREDENTIALS("E301", "간편비밀번호가 올바르지 않습니다", HttpStatus.UNAUTHORIZED),
+    AUTH_REQUIRED("E302", "로그인이 필요합니다", HttpStatus.UNAUTHORIZED),
+    AUTH_FORBIDDEN("E303", "이 사용자 정보에 접근할 수 없습니다", HttpStatus.FORBIDDEN),
+
+    // ---- 지점 대기표 ----
+    BRANCH_NOT_FOUND("E401", "은행 지점을 찾을 수 없습니다", HttpStatus.NOT_FOUND),
+    ACTIVE_TICKET_EXISTS("E402", "이미 사용 중인 대기표가 있습니다", HttpStatus.CONFLICT),
+    BRANCH_TICKET_NOT_FOUND("E403", "대기표를 찾을 수 없습니다", HttpStatus.NOT_FOUND),
+    BRANCH_TICKET_NOT_CANCELLABLE("E404", "지금은 대기표를 취소할 수 없습니다", HttpStatus.CONFLICT),
+    BRANCH_TICKET_NOT_OWNED("E405", "이 대기표에 접근할 수 없습니다", HttpStatus.FORBIDDEN),
+
     // ---- 브리핑·분류·알림 (BriefingService, ClassificationService, MuteRuleService) ----
     USER_NOT_FOUND("E201", "사용자를 찾을 수 없습니다", HttpStatus.NOT_FOUND),
     NOTIFICATION_NOT_FOUND("E202", "알림을 찾을 수 없습니다", HttpStatus.NOT_FOUND),

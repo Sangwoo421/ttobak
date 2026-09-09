@@ -10,6 +10,8 @@ CREATE DATABASE IF NOT EXISTS ttobak CHARACTER SET utf8mb4 COLLATE utf8mb4_unico
 USE ttobak;
 
 DROP TABLE IF EXISTS dialog_logs;
+DROP TABLE IF EXISTS branch_tickets;
+DROP TABLE IF EXISTS bank_branches;
 DROP TABLE IF EXISTS summary_items;
 DROP TABLE IF EXISTS counter_summaries;
 DROP TABLE IF EXISTS mute_rules;
@@ -26,6 +28,18 @@ CREATE TABLE users (
   senior_mode   TINYINT(1)   NOT NULL DEFAULT 0,
   home_branch   VARCHAR(100) NULL,
   created_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE bank_branches (
+  id                    BIGINT PRIMARY KEY AUTO_INCREMENT,
+  name                  VARCHAR(100) NOT NULL,
+  district              VARCHAR(50)  NOT NULL,
+  address               VARCHAR(200) NOT NULL,
+  opening_hours         VARCHAR(50)  NOT NULL,
+  current_serving_no    INT          NOT NULL DEFAULT 0,
+  last_ticket_no        INT          NOT NULL DEFAULT 0,
+  avg_service_minutes   INT          NOT NULL DEFAULT 6,
+  active                TINYINT(1)   NOT NULL DEFAULT 1
 );
 
 CREATE TABLE accounts (
@@ -99,6 +113,24 @@ CREATE TABLE counter_summaries (
   FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
+CREATE TABLE branch_tickets (
+  id            BIGINT PRIMARY KEY AUTO_INCREMENT,
+  branch_id     BIGINT      NOT NULL,
+  user_id       BIGINT      NOT NULL,
+  summary_id    BIGINT      NULL,             -- 창구 할 일 요약서와 함께 발급한 경우
+  ticket_no     INT         NOT NULL,
+  purpose       VARCHAR(60) NOT NULL DEFAULT '일반 상담',
+  status        VARCHAR(20) NOT NULL DEFAULT 'WAITING', -- WAITING | CALLED | DONE | CANCELLED
+  issued_at     DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  called_at     DATETIME    NULL,
+  cancelled_at  DATETIME    NULL,
+  FOREIGN KEY (branch_id) REFERENCES bank_branches(id),
+  FOREIGN KEY (user_id) REFERENCES users(id),
+  FOREIGN KEY (summary_id) REFERENCES counter_summaries(id),
+  INDEX idx_branch_ticket_queue (branch_id, status, ticket_no),
+  INDEX idx_branch_ticket_user (user_id, status)
+);
+
 CREATE TABLE summary_items (
   id           BIGINT PRIMARY KEY AUTO_INCREMENT,
   summary_id   BIGINT      NOT NULL,
@@ -129,6 +161,12 @@ CREATE TABLE dialog_logs (
 INSERT INTO users (id, name, birth_year, senior_mode, home_branch) VALUES
   (1, '김영자', 1951, 1, 'KB국민은행 종로지점'),
   (2, '박지훈', 1990, 0, 'KB국민은행 여의도지점');   -- 비교용 일반 사용자(시연 미사용)
+
+INSERT INTO bank_branches
+  (id, name, district, address, opening_hours, current_serving_no, last_ticket_no, avg_service_minutes) VALUES
+  (1, 'KB국민은행 종로지점',         '종로구',   '서울 종로구 종로',       '평일 09:00~16:00', 11, 14, 6),
+  (2, 'KB국민은행 광화문종합금융센터', '종로구',   '서울 종로구 새문안로',   '평일 09:00~18:00', 21, 23, 5),
+  (3, 'KB국민은행 서대문지점',       '서대문구', '서울 서대문구 통일로',   '평일 09:00~16:00', 7,  8, 7);
 
 INSERT INTO accounts (id, user_id, alias, bank_name, number_masked, balance) VALUES
   (1, 1, '주거래 통장', 'KB국민은행', '123456-02-****78', 1532400),
@@ -165,6 +203,16 @@ INSERT INTO notifications (id, user_id, transaction_id, sent_at, read_at, heard_
 -- 직원 화면 시연용: 이미 처리된 과거 요약서 1건
 INSERT INTO counter_summaries (id, user_id, code, ticket_no, branch_name, status, created_at) VALUES
   (1, 1, '118204', 7, 'KB국민은행 종로지점', 'DONE', DATE_SUB(NOW(), INTERVAL 10 DAY));
+
+-- 지점별 현재 대기열 예시. 새 테스트 데이터 ID는 9000 이상을 사용한다.
+INSERT INTO branch_tickets (id, branch_id, user_id, summary_id, ticket_no, purpose, status, issued_at) VALUES
+  (9001, 1, 2, NULL, 12, '일반 상담', 'WAITING', DATE_SUB(NOW(), INTERVAL 18 MINUTE)),
+  (9002, 1, 2, NULL, 13, '예금 상담', 'WAITING', DATE_SUB(NOW(), INTERVAL 12 MINUTE)),
+  (9003, 1, 2, NULL, 14, '카드 상담', 'WAITING', DATE_SUB(NOW(), INTERVAL 6 MINUTE)),
+  (9004, 2, 2, NULL, 22, '일반 상담', 'WAITING', DATE_SUB(NOW(), INTERVAL 10 MINUTE)),
+  (9005, 2, 2, NULL, 23, '대출 상담', 'WAITING', DATE_SUB(NOW(), INTERVAL 5 MINUTE)),
+  (9006, 3, 2, NULL, 8,  '일반 상담', 'WAITING', DATE_SUB(NOW(), INTERVAL 7 MINUTE));
+
 INSERT INTO summary_items (summary_id, section, ordinal, payload, handled, handled_at) VALUES
   (1, 'REQUEST',  1, JSON_OBJECT('type','TRANSFER','recipient_name','김영희','recipient_relation','딸','recipient_bank','신한은행','recipient_account_masked','110-123-****89','amount',100000,'note','생일 축하'), 1, DATE_SUB(NOW(), INTERVAL 10 DAY)),
   (1, 'QUESTION', 1, JSON_OBJECT('transaction_id',105,'text','타행이체수수료 3,500원이 왜 나갔는지'), 1, DATE_SUB(NOW(), INTERVAL 10 DAY)),
