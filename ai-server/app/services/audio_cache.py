@@ -18,6 +18,7 @@ import logging
 from typing import Callable
 
 from app.config import AUDIO_CACHE_DIR
+from app.core.korean_number import spell_amounts_for_tts
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +34,9 @@ FALLBACK_AUDIO_URL = "/ai/audio-fallback"
 
 
 def audio_url_for(text: str, tone: str, model: str, synthesize: Synthesize) -> tuple[str, bool]:
+    # 화면 표기(300,000원)를 소리 나는 대로(삼십만 원) 바꾼다. sha1 전에 해야 캐시 키가
+    # 한글 기준으로 잡히고, 같은 문장이 다음부터 재합성되지 않는다.
+    text = spell_amounts_for_tts(text)
     AUDIO_CACHE_DIR.mkdir(parents=True, exist_ok=True)
     key = f"{text}\x1f{tone}\x1f{model}".encode("utf-8")
     digest = hashlib.sha1(key).hexdigest()
