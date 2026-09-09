@@ -60,14 +60,25 @@ async function startDirectChat({ transaction_id = null, suppressAutoListen = fal
   const prevAutoListen = conv.autoListen.value
   if (suppressAutoListen) conv.autoListen.value = false
   try {
+    // begin() 의 프로미스는 자동 마이크가 켜져 있으면(tx= 경로) 대화가 끝날 때까지 resolve 되지
+    // 않는다 (begin → startListening → runTurn → afterTurn → startListening 재귀). 그래서 여기서
+    // await 만 기다리면 로딩 표시가 대화 내내 갇힌다. 세션 응답이 온 시점(onStarted, 재생 전)에
+    // 로딩을 끄고 URL(?tx=·?start=)을 정리한다.
     // 거래를 눌러 들어온 경우에는 그 건을 읽어줘야 하므로 음성을 재생한다.
-    await conv.begin({ user_id: 1, transaction_id, playBriefing: !!transaction_id })
-    await router.replace('/senior/chat')
+    await conv.begin({
+      user_id: 1,
+      transaction_id,
+      playBriefing: !!transaction_id,
+      onStarted: () => {
+        starting.value = false
+        router.replace('/senior/chat')
+      },
+    })
   } catch (e) {
     startError.value = seniorErrorMessage(e)
+    starting.value = false
   } finally {
     if (suppressAutoListen) conv.autoListen.value = prevAutoListen
-    starting.value = false
   }
 }
 
