@@ -43,6 +43,8 @@ Thumbs.db
 !docs/assets/**
 
 # AI 코딩 규칙 파일은 로컬 전용 (팀 결정)
+AGENTS.md
+**/AGENTS.md
 CLAUDE.md
 **/CLAUDE.md
 .claude/
