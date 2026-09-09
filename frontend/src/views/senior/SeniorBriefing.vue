@@ -5,6 +5,7 @@ import SeniorShell from '@/components/SeniorShell.vue'
 import ToneFrame from '@/components/ToneFrame.vue'
 import BigButton from '@/components/BigButton.vue'
 import MicStatus from '@/components/MicStatus.vue'
+import MicButton from '@/components/MicButton.vue'
 import LevelBadge from '@/components/LevelBadge.vue'
 import { useConversation } from '@/composables/useConversation'
 import { ordinalLabel } from '@/utils/format'
@@ -38,6 +39,13 @@ function onButton(id) {
   conv.pressButton(id)
   router.push('/senior/chat')
 }
+
+/** 브리핑을 다 듣고 바로 말할 수 있어야 한다. 버튼을 눌러 대화 화면으로 넘어간 뒤 다시
+ *  마이크를 누르게 하면 말하기까지 탭이 두 번이다. 여기서 바로 듣고 대화로 넘어간다. */
+function onMic() {
+  router.push('/senior/chat')
+  conv.toggleMic()
+}
 </script>
 
 <template>
@@ -69,6 +77,8 @@ function onButton(id) {
         <div class="bottom">
           <MicStatus v-if="!error && !ready" :status="conv.micStatus.value" />
           <template v-if="ready">
+            <!-- 말하는 것이 주 수단이다. 버튼보다 위에 둔다. -->
+            <MicButton :status="conv.micStatus.value" @click="onMic" />
             <BigButton v-for="b in session.mainButtons" :key="b.id" :kind="b.kind || 'secondary'" @click="onButton(b.id)">{{ b.label }}</BigButton>
           </template>
         </div>
