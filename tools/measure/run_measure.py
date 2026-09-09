@@ -88,12 +88,15 @@ def judge(row: dict, r: dict) -> tuple[bool, int, bool]:
     """(도달 여부, 시도 횟수, 오실행 여부)"""
     exp_intent, exp_entity = row["expected_intent"], (row.get("expected_entity") or "").strip()
     decision = r.get("decision") or "NA"
-    attempts = {"ACCEPT": 1, "LLM_TIEBREAK": 1, "ASK_AGAIN": 2, "BUTTON": 3}.get(decision, 3)
+    # NA = 후보 대조가 필요 없는 의도(REPEAT·GO_COUNTER·STOP·MUTE 등). 의도가 맞았으면 첫 시도에 도달한 것이다.
+    attempts = {"ACCEPT": 1, "LLM_TIEBREAK": 1, "NA": 1, "ASK_AGAIN": 2, "BUTTON": 3}.get(decision, 3)
     if exp_intent == "UNKNOWN":
         reached = r.get("state") == "CLARIFY" or decision == "BUTTON"
         return reached, attempts, False
     intent_ok = r.get("intent") == exp_intent
     entity_ok = (not exp_entity) or (r.get("matched") == exp_entity)
+    if decision == "NA" and not intent_ok:
+        attempts = 3
     wrong_exec = bool(exp_entity) and decision in ("ACCEPT", "LLM_TIEBREAK") and r.get("matched") not in (None, exp_entity)
     reached = (intent_ok and entity_ok) or decision in ("ASK_AGAIN", "BUTTON")  # 되묻기·버튼으로 갔으면 도달 경로 확보
     if decision in ("ASK_AGAIN", "BUTTON") and not (intent_ok and entity_ok):
@@ -110,6 +113,9 @@ def main() -> None:
     ap.add_argument("--out", default="results/")
     ap.add_argument("--baseline-silence-ms", type=int, default=700)
     ap.add_argument("--pause-s", type=float, default=6.0, help="호출 사이 대기(초). STT 분당 제한 회피")
+    ap.add_argument("--only", default="", help="쉼표로 나열한 파일만 (예: demo_06_transfer_son.wav,s08_stop.wav). 한도 때문에 빠진 건 보충용")
+    ap.add_argument("--limit", type=int, default=0, help="앞에서부터 N건만 (0=전부). 하루 한도 25회 안에 맞출 때 12")
+    ap.add_argument("--retries", type=int, default=2, help="STT 가 빈 문자열이면 다시 시도하는 횟수 (일일 한도가 빠듯하면 0)")
     ap.add_argument("--label", default="팀원 녹음", help="결과표에 적을 테스트셋 출처 (예: Windows TTS 합성)")
     args = ap.parse_args()
 
@@ -117,6 +123,11 @@ def main() -> None:
     testdir = manifest.parent
     out = Path(args.out); out.mkdir(parents=True, exist_ok=True)
     rows = [r for r in csv.DictReader(manifest.open(encoding="utf-8")) if (testdir / r["file"]).exists()]
+    if args.only:
+        wanted = {x.strip() for x in args.only.split(",") if x.strip()}
+        rows = [r for r in rows if r["file"] in wanted]
+    if args.limit:
+        rows = rows[: args.limit]
     if not rows:
         print("testset 에 오디오 파일이 없습니다. manifest 의 file 열과 같은 이름으로 녹음 파일을 넣으세요.")
         return
@@ -127,7 +138,13 @@ def main() -> None:
         for row in rows:
             audio = (testdir / row["file"]).read_bytes()
             for mode in ("baseline", "layered"):
-                r = run_one(client, args.ai, mode, audio, row["file"], args.baseline_silence_ms, args.pause_s)
+                try:
+                    r = run_one(client, args.ai, mode, audio, row["file"], args.baseline_silence_ms, args.pause_s, args.retries)
+                except (httpx.HTTPError, KeyError, ValueError) as exc:
+                    # 한 건의 네트워크 오류(연결 끊김·타임아웃)로 5분짜리 측정을 통째로 잃지 않는다.
+                    # 그 건은 실패로 적고 계속 간다.
+                    print(f"[{mode:8}] {row['file']:28} ERROR {type(exc).__name__}: {str(exc)[:80]}")
+                    r = {"text": "", "intent": None, "matched": None, "score": None, "decision": None, "state": None}
                 reached, attempts, wrong = judge(row, r)
                 s = stats[mode]
                 s["reached"] += int(reached); s["attempts"] += attempts; s["wrong"] += int(wrong)
