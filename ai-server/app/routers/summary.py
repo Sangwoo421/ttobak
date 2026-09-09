@@ -6,7 +6,7 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Request
 
 from app.core.session_store import store
-from app.core.state_machine import TurnContext, create_summary
+from app.core.state_machine import EmptySummaryError, TurnContext, create_summary
 from app.services import audio_cache
 
 router = APIRouter()
@@ -20,7 +20,10 @@ def session_summary(session_id: str, request: Request) -> dict:
 
     settings = request.app.state.settings
     ctx = TurnContext(settings=settings, backend=request.app.state.backend, llm=request.app.state.llm)
-    result = create_summary(session, ctx)
+    try:
+        result = create_summary(session, ctx)
+    except EmptySummaryError as exc:
+        raise HTTPException(status_code=400, detail="요약서에 저장할 내용이 없습니다") from exc
 
     audio_url, _cached = audio_cache.audio_url_for(
         result["spoken_text"], result["tone"], settings.tts_model, request.app.state.tts.synthesize

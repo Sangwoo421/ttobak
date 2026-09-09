@@ -21,7 +21,7 @@ from app.config import DEFAULT_EXAMPLES_DIR
 from app.core import templates as T
 from app.core.candidates import build_candidates
 from app.core.session_store import Session
-from app.core.state_machine import TurnContext, handle_turn
+from app.core.state_machine import EmptySummaryError, TurnContext, create_summary, handle_turn
 from app.providers.factory import SafeLLM
 from app.providers.stub_provider import StubLLMProvider
 
@@ -167,10 +167,19 @@ def test_confirm_no_restarts_without_any_request(session, ctx):
     assert _add_requests(session) == []
 
 
-def test_go_counter_summary_has_no_confirmed_requests_when_none_confirmed(session, ctx):
-    # 이체를 한 번도 확정하지 않고 창구로 가면 요약서 REQUEST 는 비어 있다
+def test_go_counter_without_content_does_not_create_summary(session, ctx):
+    # 설명만 듣고 아무 요청/질문도 담지 않았다면 빈 요약서를 만들지 않는다.
     handle_turn(session, ctx, text="첫 번째 거 뭐야")
     r = handle_turn(session, ctx, button_id="GO_COUNTER")
-    assert r.state == "DONE"
+    assert r.state == "LISTENING"
+    assert r.actions == []
+    assert "정리할 내용이 없어요" in r.assistant_text
+    assert session.summary is None
     assert _add_requests(session) == []
     assert not any(q.get("confirmed_by_user") for q in session.requests)
+
+
+def test_direct_summary_creation_rejects_empty_content(session, ctx):
+    with pytest.raises(EmptySummaryError):
+        create_summary(session, ctx)
+    assert session.summary is None

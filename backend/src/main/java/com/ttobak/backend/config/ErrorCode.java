@@ -23,6 +23,7 @@ public enum ErrorCode {
     BRANCH_NAME_REQUIRED("E106", "지점 정보가 필요합니다", HttpStatus.BAD_REQUEST),
     UNKNOWN_USER("E107", "존재하지 않는 사용자입니다", HttpStatus.BAD_REQUEST),
     COUNTERPARTY_NOT_OWNED("E108", "등록되지 않은 수취인입니다", HttpStatus.BAD_REQUEST),
+    EMPTY_SUMMARY("E109", "요약서에 저장할 내용이 없습니다", HttpStatus.BAD_REQUEST),
 
     // ---- 브리핑·분류·알림 (BriefingService, ClassificationService, MuteRuleService) ----
     USER_NOT_FOUND("E201", "사용자를 찾을 수 없습니다", HttpStatus.NOT_FOUND),
