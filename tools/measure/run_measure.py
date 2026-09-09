@@ -9,6 +9,7 @@ import argparse
 import csv
 import io
 import struct
+import time
 import wave
 from pathlib import Path
 
@@ -54,13 +55,23 @@ def truncate_at_silence(wav_bytes: bytes, silence_ms: int, threshold: float = 0.
 
 # ---------------------------------------------------------------- 한 건 실행
 
-def run_one(client: httpx.Client, ai: str, mode: str, audio: bytes, filename: str, silence_ms: int) -> dict:
+def run_one(client: httpx.Client, ai: str, mode: str, audio: bytes, filename: str, silence_ms: int,
+            pause_s: float = 0.0, retries: int = 2) -> dict:
     start = client.post(f"{ai}/ai/session/start", json={"user_id": USER_ID, "mode": mode}).json()
     sid = start["session_id"]
     if mode == "baseline" and filename.lower().endswith(".wav"):
         audio = truncate_at_silence(audio, silence_ms)
-    stt = client.post(f"{ai}/ai/stt", data={"session_id": sid}, files={"audio": (filename, audio)}).json()
-    text = stt.get("text", "")
+    # STT 미리보기 모델은 분당 호출 제한(429)이 있고 서버는 그때 빈 문자열을 돌려준다.
+    # 빈 문자열이면 잠시 쉬고 다시 시도한다 — 안 그러면 제한이 "인식 실패"로 집계된다.
+    text = ""
+    for attempt in range(retries + 1):
+        stt = client.post(f"{ai}/ai/stt", data={"session_id": sid}, files={"audio": (filename, audio)}).json()
+        text = stt.get("text", "")
+        if text or attempt == retries:
+            break
+        time.sleep(max(pause_s, 15.0))
+    if pause_s:
+        time.sleep(pause_s)
     turn = client.post(f"{ai}/ai/turn", json={"session_id": sid, "text": text}).json()
     d = turn.get("debug", {})
     return {
@@ -98,6 +109,8 @@ def main() -> None:
     ap.add_argument("--manifest", default="testset/manifest.csv")
     ap.add_argument("--out", default="results/")
     ap.add_argument("--baseline-silence-ms", type=int, default=700)
+    ap.add_argument("--pause-s", type=float, default=6.0, help="호출 사이 대기(초). STT 분당 제한 회피")
+    ap.add_argument("--label", default="팀원 녹음", help="결과표에 적을 테스트셋 출처 (예: Windows TTS 합성)")
     args = ap.parse_args()
 
     manifest = Path(args.manifest)
@@ -114,7 +127,7 @@ def main() -> None:
         for row in rows:
             audio = (testdir / row["file"]).read_bytes()
             for mode in ("baseline", "layered"):
-                r = run_one(client, args.ai, mode, audio, row["file"], args.baseline_silence_ms)
+                r = run_one(client, args.ai, mode, audio, row["file"], args.baseline_silence_ms, args.pause_s)
                 reached, attempts, wrong = judge(row, r)
                 s = stats[mode]
                 s["reached"] += int(reached); s["attempts"] += attempts; s["wrong"] += int(wrong)
@@ -127,7 +140,7 @@ def main() -> None:
     n = len(rows)
     with (out / "details.csv").open("w", encoding="utf-8", newline="") as f:
         w = csv.DictWriter(f, fieldnames=list(details[0].keys())); w.writeheader(); w.writerows(details)
-    md = ["# 레이어 적용 전/후 측정 결과", "", f"테스트셋: 자체 구성 {n}건 (팀원 녹음). 같은 STT 엔진, 같은 파일.", "",
+    md = ["# 레이어 적용 전/후 측정 결과", "", f"테스트셋: 자체 구성 {n}건 ({args.label}). 같은 STT 엔진, 같은 파일.", "",
           "| 경로 | 의도 도달률 | 평균 시도 횟수 | 오실행 건수 |", "|---|---|---|---|"]
     for mode, label in (("baseline", "레이어 미적용"), ("layered", "레이어 적용")):
         s = stats[mode]

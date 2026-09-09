@@ -6,7 +6,7 @@ always has *some* audio_url without a bad result ever landing in the on-disk cac
 """
 from __future__ import annotations
 
-from fastapi import APIRouter, Request, Response
+from fastapi import APIRouter, HTTPException, Request, Response
 from pydantic import BaseModel
 
 from app.providers.stub_provider import StubTTSProvider
@@ -33,3 +33,13 @@ def tts(body: TTSRequest, request: Request) -> dict:
 @router.get("/ai/audio-fallback")
 def audio_fallback() -> Response:
     return Response(content=_SILENCE_WAV, media_type="audio/wav")
+
+
+@router.get("/ai/audio-tmp/{name}")
+def audio_tmp(name: str) -> Response:
+    """디스크에 캐시하지 않은 대체 음성(오프라인 TTS). audio_cache.audio_url_for 가 이 경로를 준다."""
+    hit = audio_cache.temp_audio(name)
+    if hit is None:
+        raise HTTPException(status_code=404, detail="temp audio expired")
+    audio, ext = hit
+    return Response(content=audio, media_type="audio/wav" if ext == "wav" else f"audio/{ext}")
