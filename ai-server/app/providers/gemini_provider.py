@@ -134,14 +134,23 @@ class GeminiTTSProvider:
         self._client = genai.Client(api_key=api_key)
         self._model = model
         self._voice = voice
-        self._fallback = StubTTSProvider()
+        # 무료 등급 하루 10회(429) 를 넘기면: Windows 면 내장 한국어 음성(Heami)으로, 아니면 무음.
+        # 둘 다 is_fallback=True 라 캐시되지 않고 다음 호출에서 Gemini 를 다시 시도한다.
+        from app.providers import sapi_provider
+
+        self._fallback = sapi_provider.SapiTTSProvider() if sapi_provider.available() else StubTTSProvider()
+        self._silence = StubTTSProvider()
 
     def synthesize(self, text: str, tone: str = "friendly") -> tuple[bytes, str, bool]:
         try:
             return self._synthesize(text, tone), "wav", False
         except Exception as exc:  # noqa: BLE001 - a preview-model rate limit must not cost the demo its voice
-            logger.warning("Gemini TTS failed (%s); returning silent stub audio (not cached, retried next call)", exc)
-            return self._fallback.synthesize(text, tone)  # (silence, "wav", True) — audio_cache won't persist it
+            logger.warning("Gemini TTS failed (%s); using offline fallback voice (not cached, retried next call)", exc)
+            try:
+                return self._fallback.synthesize(text, tone)
+            except Exception as exc2:  # noqa: BLE001
+                logger.warning("fallback TTS failed too (%s); returning silence", exc2)
+                return self._silence.synthesize(text, tone)
 
     def _synthesize(self, text: str, tone: str) -> bytes:
         style = _TONE_STYLE.get(tone, _TONE_STYLE["friendly"])
@@ -162,8 +171,14 @@ class GeminiTTSProvider:
 
 
 class GeminiLLMProvider:
+    # 의도 분류·동점 선택·설명은 모두 짧은 JSON 한 줄이다. 기본 설정의 "생각(thinking)" 단계가
+    # 켜져 있으면 "으음 그 저기" 한마디에 10초가 걸려 무대에서 침묵이 생긴다(실측 9.9초).
+    # 생각 예산을 0 으로, 응답 시간 상한을 10초(API 허용 최소)로 둔다. 넘기면 SafeLLM 이 UNKNOWN 으로 받아
+    # 규칙 경로(선택지 버튼)로 내려가므로 대화는 끊기지 않는다.
+    _TIMEOUT_MS = 10000
+
     def __init__(self, api_key: str, model: str) -> None:
-        self._client = genai.Client(api_key=api_key)
+        self._client = genai.Client(api_key=api_key, http_options=types.HttpOptions(timeout=self._TIMEOUT_MS))
         self._model = model
 
     def _json(self, system: str, user: str) -> dict:
@@ -174,6 +189,8 @@ class GeminiLLMProvider:
                 system_instruction=system,
                 temperature=0.0,
                 response_mime_type="application/json",
+                max_output_tokens=120,
+                thinking_config=types.ThinkingConfig(thinking_budget=0),
             ),
         )
         return json.loads(resp.text or "{}")
