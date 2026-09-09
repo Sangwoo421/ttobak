@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>측정용 녹음기 — 또박또박</title>
+<!--
+  tools/measure/testset 에 넣을 wav 를 브라우저에서 바로 녹음한다. 16kHz · 모노 · 16bit.
+  이 파일을 Chrome/Edge 에서 그냥 열면 된다 (file://). 서버 불필요.
+  "폴더 선택"으로 testset 폴더를 고르면 녹음 즉시 그 폴더에 저장되고, 안 고르면 다운로드 폴더로 내려간다.
+  문장 목록은 manifest.csv 와 같다. manifest 를 바꾸면 아래 ROWS 도 같이 바꾼다.
+-->
+<style>
+  :root { --ink:#17161a; --muted:#85817a; --paper:#f3f2ee; --line:#e9e6df; --yellow:#ffbc00; --ok:#1d7a3d; --bad:#c5221f; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--paper); color:var(--ink); font-family:'Gothic A1','Apple SD Gothic Neo','Malgun Gothic',sans-serif; }
+  .wrap { max-width:760px; margin:0 auto; padding:24px 18px 60px; }
+  h1 { font-size:24px; margin:0 0 6px; }
+  .sub { color:var(--muted); font-size:15px; margin:0 0 18px; line-height:1.5; }
+  .bar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:18px; }
+  button { font:inherit; cursor:pointer; border:1px solid var(--line); background:#fff; color:var(--ink); border-radius:12px; padding:10px 16px; font-size:15px; font-weight:700; }
+  button.primary { background:var(--yellow); border-color:transparent; }
+  button.rec { background:var(--ink); color:#fff; border-color:transparent; min-width:150px; }
+  button.rec.on { background:var(--bad); }
+  button:disabled { opacity:.45; cursor:not-allowed; }
+  .pill { font-size:13px; font-weight:700; padding:5px 10px; border-radius:999px; background:#e9e7e0; color:var(--muted); }
+  .pill.ok { background:#e6f4ea; color:var(--ok); }
+  .card { background:#fff; border:1px solid var(--line); border-radius:18px; padding:16px 18px; margin-bottom:12px; box-shadow:0 1px 2px rgba(23,22,26,.04),0 8px 24px rgba(23,22,26,.05); }
+  .card.done { border-color:#cfe6d5; }
+  .head { display:flex; justify-content:space-between; gap:10px; align-items:center; margin-bottom:8px; }
+  .file { font-size:13px; color:var(--muted); font-variant-numeric:tabular-nums; }
+  .text { font-size:22px; font-weight:800; letter-spacing:-.4px; line-height:1.4; margin:4px 0 6px; word-break:keep-all; }
+  .note { font-size:14px; color:#8a5a00; background:#fff4d1; display:inline-block; padding:3px 9px; border-radius:999px; margin-bottom:10px; }
+  .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .meter { flex:1; min-width:120px; height:10px; background:var(--paper); border-radius:999px; overflow:hidden; }
+  .meter i { display:block; height:100%; width:0; background:var(--ok); transition:width .05s linear; }
+  .dur { font-size:14px; color:var(--muted); min-width:52px; text-align:right; font-variant-numeric:tabular-nums; }
+  audio { height:36px; }
+  .tips { background:#fff; border:1px solid var(--line); border-radius:14px; padding:12px 16px; font-size:14px; line-height:1.6; color:#4a463f; margin-bottom:18px; }
+  .tips b { color:var(--ink); }
+  .err { color:var(--bad); font-weight:700; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>측정용 녹음기</h1>
+  <p class="sub">14문장. 각자 맡은 <b>팀원 글자</b>의 문장만 녹음하면 됩니다. 16kHz 모노 wav 로 저장됩니다.</p>
+
+  <div class="tips">
+    <b>이렇게 말해야 측정이 됩니다.</b> 대본을 읽지 말고 외워서 말하듯. <b>문장 중간에 1~2초 멈추기</b>(쉼 표시된 문장은 꼭).
+    고유명사는 일부러 흐리게 ("정보통신인가 뭐시기"). 별칭은 그대로 ("우리 딸", "한전"). 잡음은 넣지 않아도 됩니다. 한 문장 3~6초.
+  </div>
+
+  <div class="bar">
+    <button id="pick" class="primary">저장 폴더 선택 (testset)</button>
+    <span id="pickState" class="pill">폴더 미선택 → 다운로드 폴더로 저장</span>
+    <span style="flex:1"></span>
+    <label style="font-size:14px;color:var(--muted)">팀원 필터
+      <select id="who" style="font:inherit;padding:6px 8px;border-radius:8px;border:1px solid var(--line)">
+        <option value="">전체</option>
+      </select>
+    </label>
+  </div>
+  <p id="err" class="err" hidden></p>
+  <div id="list"></div>
+</div>
+
+<script>
+const ROWS = [
+  {file:"demo_03_first_what.wav", speaker:"팀원A", text:"첫 번째 거 그게 뭐야", notes:"중간에 1초 쉼"},
+  {file:"demo_04_third_what.wav", speaker:"팀원A", text:"세 번째 그 정보통신인가 그건 뭐야", notes:"고유명사 흐림"},
+  {file:"demo_06_transfer_son.wav", speaker:"팀원B", text:"아들이 뭐 보내라는데 이십만 원인가", notes:"웅얼거림 · 중간에 쉼"},
+  {file:"demo_08_mumble.wav", speaker:"팀원B", text:"으음 그 저기", notes:"의도 없음 → 못 알아듣는 게 정답"},
+  {file:"s01_how_much_second.wav", speaker:"팀원C", text:"두 번째 건 얼마 나간 거야", notes:""},
+  {file:"s02_who_sent.wav", speaker:"팀원C", text:"누가 보낸 거야 첫 번째", notes:"어순 도치"},
+  {file:"s03_repeat.wav", speaker:"팀원D", text:"못 들었어 다시 한 번", notes:""},
+  {file:"s04_go_counter.wav", speaker:"팀원D", text:"은행 가서 할게 정리해줘", notes:""},
+  {file:"s05_daughter_50.wav", speaker:"팀원E", text:"우리 딸한테 오만 원만 부쳐줘", notes:"별칭 \"우리 딸\""},
+  {file:"s06_grandson.wav", speaker:"팀원E", text:"손자 민수 삼만 원", notes:"동사 생략"},
+  {file:"s07_hanjeon.wav", speaker:"팀원A", text:"한전인가 그거 왜 나갔어", notes:"별칭 \"한전\""},
+  {file:"s08_stop.wav", speaker:"팀원B", text:"그만 됐어", notes:""},
+  {file:"s09_mute.wav", speaker:"팀원C", text:"전기세는 매번 안 들어도 돼", notes:""},
+  {file:"s10_dialect_son.wav", speaker:"팀원D", text:"아들내미한테 돈 좀 넣어주소 십만 원", notes:"사투리"},
+];
+const RATE = 16000;
+let dirHandle = null;
+let ctx, stream, source, proc, chunks = [], recording = null, startedAt = 0, timer = null;
+
+const $ = (s, el = document) => el.querySelector(s);
+const err = (m) => { const e = $('#err'); e.hidden = !m; e.textContent = m || ''; };
+
+// ---------- 폴더 선택 (Chrome/Edge). 없으면 다운로드로.
+$('#pick').onclick = async () => {
+  if (!window.showDirectoryPicker) { err('이 브라우저는 폴더 저장을 지원하지 않아요. 다운로드 폴더에서 testset 으로 옮겨 주세요.'); return; }
+  try {
+    dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+    $('#pickState').textContent = '저장 위치: ' + dirHandle.name + '/';
+    $('#pickState').classList.add('ok');
+    err('');
+  } catch (e) { /* 취소 */ }
+};
+
+// ---------- 마이크
+async function ensureMic() {
+  if (ctx) return;
+  ctx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: RATE });
+  stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: false, autoGainControl: true } });
+  source = ctx.createMediaStreamSource(stream);
+  proc = ctx.createScriptProcessor(4096, 1, 1);
+  proc.onaudioprocess = (e) => {
+    if (!recording) return;
+    const d = e.inputBuffer.getChannelData(0);
+    chunks.push(new Float32Array(d));
+    let s = 0; for (let i = 0; i < d.length; i++) s += d[i] * d[i];
+    const rms = Math.sqrt(s / d.length);
+    $('.meter i', recording.card).style.width = Math.min(100, rms * 400) + '%';
+  };
+  source.connect(proc); proc.connect(ctx.destination);
+}
+
+function encodeWav(samples) {
+  const buf = new ArrayBuffer(44 + samples.length * 2);
+  const v = new DataView(buf);
+  const w = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+  w(0, 'RIFF'); v.setUint32(4, 36 + samples.length * 2, true); w(8, 'WAVE');
+  w(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, RATE, true); v.setUint32(28, RATE * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+  w(36, 'data'); v.setUint32(40, samples.length * 2, true);
+  let o = 44;
+  for (let i = 0; i < samples.length; i++, o += 2) { const x = Math.max(-1, Math.min(1, samples[i])); v.setInt16(o, x < 0 ? x * 0x8000 : x * 0x7fff, true); }
+  return new Blob([buf], { type: 'audio/wav' });
+}
+
+async function save(name, blob) {
+  if (dirHandle) {
+    const fh = await dirHandle.getFileHandle(name, { create: true });
+    const ws = await fh.createWritable(); await ws.write(blob); await ws.close();
+    return '저장됨 → ' + dirHandle.name + '/' + name;
+  }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click();
+  return '다운로드됨 (testset 폴더로 옮기세요)';
+}
+
+// ---------- 목록
+const list = $('#list');
+const who = $('#who');
+[...new Set(ROWS.map(r => r.speaker))].forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; who.appendChild(o); });
+who.onchange = () => { for (const c of list.children) c.hidden = who.value && c.dataset.speaker !== who.value; };
+
+for (const r of ROWS) {
+  const card = document.createElement('div');
+  card.className = 'card'; card.dataset.speaker = r.speaker;
+  card.innerHTML = `
+    <div class="head"><span class="file">${r.file}</span><span class="pill">${r.speaker}</span></div>
+    <div class="text">“${r.text}”</div>
+    ${r.notes ? `<div class="note">${r.notes}</div>` : ''}
+    <div class="row">
+      <button class="rec">● 녹음 시작</button>
+      <span class="meter"><i></i></span>
+      <span class="dur">0.0s</span>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <audio controls hidden></audio>
+      <button class="save primary" hidden>이 파일로 저장</button>
+      <span class="state pill" hidden></span>
+    </div>`;
+  list.appendChild(card);
+
+  const btn = $('.rec', card), audio = $('audio', card), saveBtn = $('.save', card), state = $('.state', card), dur = $('.dur', card);
+  let blob = null;
+
+  btn.onclick = async () => {
+    try { await ensureMic(); } catch (e) { err('마이크를 열 수 없어요: ' + e.message); return; }
+    if (recording && recording.card === card) {
+      // 정지
+      recording = null; clearInterval(timer);
+      btn.textContent = '● 다시 녹음'; btn.classList.remove('on');
+      const n = chunks.reduce((a, c) => a + c.length, 0);
+      const all = new Float32Array(n); let o = 0; for (const c of chunks) { all.set(c, o); o += c.length; }
+      // 앞뒤 0.3초 여유
+      const pad = new Float32Array(Math.round(RATE * 0.3));
+      const out = new Float32Array(pad.length * 2 + all.length); out.set(pad, 0); out.set(all, pad.length); out.set(pad, pad.length + all.length);
+      blob = encodeWav(out);
+      audio.src = URL.createObjectURL(blob); audio.hidden = false; saveBtn.hidden = false;
+      state.hidden = false; state.textContent = (out.length / RATE).toFixed(1) + '초 · 들어보고 괜찮으면 저장';
+      return;
+    }
+    if (recording) { err('다른 문장을 녹음 중이에요. 먼저 정지하세요.'); return; }
+    err(''); chunks = []; recording = { card }; startedAt = performance.now();
+    btn.textContent = '■ 정지'; btn.classList.add('on');
+    timer = setInterval(() => { dur.textContent = ((performance.now() - startedAt) / 1000).toFixed(1) + 's'; }, 100);
+  };
+
+  saveBtn.onclick = async () => {
+    if (!blob) return;
+    try { state.textContent = await save(r.file, blob); state.classList.add('ok'); card.classList.add('done'); }
+    catch (e) { err('저장 실패: ' + e.message); }
+  };
+}
+</script>
+</body>
+</html>

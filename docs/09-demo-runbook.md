@@ -73,5 +73,7 @@ cd ../tools/measure
 ../../ai-server/.venv/Scripts/python run_measure.py --ai http://localhost:8001 --pause-s 7 --label "팀원 녹음"
 ```
 
+- **녹음**: `tools/measure/recorder.html` 을 Chrome/Edge 로 그냥 열면 된다(서버 불필요). "저장 폴더 선택"으로 `testset/` 을 고르면 문장별로 파일명이 맞춰져 바로 저장된다. 팀원 필터로 자기 몫만. 문장 중간에 1~2초 쉬고, 고유명사는 흐리게, 외워서 말하듯.
+- 결과 합치기: 키 한도 때문에 나눠 돌렸으면 `merge_results.py results/details.csv results_fix/details.csv --out results_final/` (뒤 파일이 이김, 한쪽 STT 가 빈 건은 제외 표기).
 - `testset/*.wav` 는 지금 **Windows 한국어 TTS 로 합성한 예비본**이다(`--label` 로 결과표에 그렇게 적힌다). 팀원 녹음이 들어오면 같은 파일명으로 덮어쓰고 다시 돌린다. 발표에서는 출처를 그대로 말한다.
 - 14건 × 2경로 = STT 28회. **무료 등급 하루 25회를 넘는다** — 유료 등급이 아니면 이틀에 나눠 돌리거나 문장을 12건으로 줄인다. `--pause-s 7` 은 연속 호출 완화용.
