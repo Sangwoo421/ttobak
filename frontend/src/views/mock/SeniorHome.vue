@@ -103,7 +103,7 @@ function when(tx) {
       <span class="s-avatar" aria-hidden="true">{{ initial }}</span>
       <div class="s-who">
         <p class="s-name">{{ userName }} 님</p>
-        <span class="s-mode"><i class="dot" />어르신 모드 켜짐</span>
+        <span class="s-mode"><i class="dot" />간편 모드 켜짐</span>
       </div>
       <button type="button" class="s-off" @click="emit('exit')">모드 끄기</button>
     </header>

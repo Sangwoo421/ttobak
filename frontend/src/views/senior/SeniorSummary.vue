@@ -196,7 +196,7 @@ onUnmounted(() => {
         <div class="buttons">
           <BigButton kind="primary" @click="chooseBranch">지점·대기표 선택</BigButton>
           <BigButton kind="secondary" @click="replay">안내 다시 듣기</BigButton>
-          <BigButton kind="secondary" @click="goHome">어르신 모드 홈</BigButton>
+          <BigButton kind="secondary" @click="goHome">간편 모드 홈</BigButton>
         </div>
       </div>
     </ToneFrame>
