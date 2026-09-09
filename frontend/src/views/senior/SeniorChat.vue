@@ -9,7 +9,7 @@ import MicStatus from '@/components/MicStatus.vue'
 import SpeechBubble from '@/components/SpeechBubble.vue'
 import LevelBadge from '@/components/LevelBadge.vue'
 import { useConversation } from '@/composables/useConversation'
-import { errorMessage } from '@/api/http'
+import { seniorErrorMessage } from '@/api/http'
 
 // 시연 3단계: 대화 화면. 말풍선 + 마이크 상태 + 큰 마이크 + ui.buttons(+ CLARIFY 면 choices).
 // tone=confirm 이면 ToneFrame 이 화면 전체를 바꾸고 버튼은 맞아요/아니에요만 크게.
@@ -50,7 +50,7 @@ async function startDirectChat({ transaction_id = null, suppressAutoListen = fal
     await conv.begin({ user_id: 1, transaction_id, playBriefing: !!transaction_id })
     await router.replace('/senior/chat')
   } catch (e) {
-    startError.value = errorMessage(e)
+    startError.value = seniorErrorMessage(e)
   } finally {
     if (suppressAutoListen) conv.autoListen.value = prevAutoListen
     starting.value = false

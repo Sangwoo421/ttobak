@@ -8,7 +8,7 @@ import { useRouter } from 'vue-router'
 import { useSessionStore } from '@/stores/session'
 import { useRecorder, RECORDER_DEFAULTS } from './useRecorder'
 import { useAudioPlayer } from './useAudioPlayer'
-import { errorMessage } from '@/api/http'
+import { seniorErrorMessage } from '@/api/http'
 
 const busy = ref(false) // STT/턴 요청 진행 중
 const ended = ref(false) // END 액션을 받았다
@@ -151,7 +151,7 @@ export function useConversation() {
     } catch (e) {
       busy.value = false
       stopping.value = false
-      hint.value = errorMessage(e)
+      hint.value = seniorErrorMessage(e)
       console.error('[turn]', e)
       return null
     }

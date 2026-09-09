@@ -203,6 +203,27 @@ def _on_text(session: Session, ctx: TurnContext, text: str, r: TurnResult) -> No
             r.path.append("amount_parser")
             _slot_amount_text(session, text, r)
             return
+        if session.mode == "baseline":
+            # 비교 기준에는 LLM 보정도 자모 구제도 없다. 규칙이 못 잡으면 거기서 실패다.
+            r.intent, r.intent_confidence = "UNKNOWN", 0.0
+            _clarify_intents(session, r)
+            return
+
+        # 레이어 3겹의 마지막: 의도 규칙이 못 잡았어도 화면에 떠 있는 거래와 대조해 본다.
+        #
+        # "그 정보통시인가 뭐시기" 처럼 발음이 뭉개지면 의도 낱말(뭐야/무슨)도 상대명도
+        # 글자 그대로는 안 맞는다. 그런데 자모로 재면 '정보통신'과 0.91 이다. 여기서 구제하지
+        # 않으면 "인식이 깨져도 하려던 일에 도달하게 한다"는 레이어의 목적이 무너진다.
+        #
+        # 거래를 짚은 것으로만 본다(읽어주기). 수취인만 맞았다고 이체 요청으로 넘기지는 않는다 —
+        # 돈이 움직이는 쪽은 낱말이 분명할 때만 들어간다.
+        if session.state == "LISTENING":
+            rescued = _rescue_by_candidates(session, ctx, text, r)
+            if rescued:
+                r.intent, r.intent_confidence = "ASK_ABOUT_TX", 1.0
+                r.path.append("jamo_rescue")
+                _apply_tx_intent(session, ctx, "ASK_ABOUT_TX", rescued, text, r)
+                return
         (intent, conf), err = ctx.llm.classify_intent(text, llm_candidate_intents(session.state))
         r.llm_used = True
         r.path.append("llm")
@@ -371,10 +392,54 @@ def _cp_choices(session: Session, scored: list[Scored] | None = None) -> list[di
 
 
 # ===================================================== transaction asks ====
+def _rescue_by_candidates(session: Session, ctx: TurnContext, text: str, r: TurnResult) -> dict | None:
+    """의도 규칙이 실패했을 때 화면의 거래와 자모로 대조해 본다. 확실할 때만 구제한다.
+
+    되묻기(ASK_AGAIN) 구간은 쓰지 않는다. 의도조차 불분명한 발화에서 애매한 후보를 되물으면
+    엉뚱한 거래를 확인시키게 된다. 확실히 맞을 때만 집고, 아니면 원래대로 CLARIFY 로 간다.
+    """
+    cands = session.tx_candidates()
+    if not cands:
+        return None
+    scored = score_candidates(text, cands)
+    decision, mid, score = decide(scored, ctx.settings.match_accept, ctx.settings.match_ask,
+                                  ctx.settings.match_tie_gap)
+    if decision != "ACCEPT" or not mid:
+        return None
+    r.candidates = [x.to_dict() for x in scored]
+    r.decision, r.matched_candidate, r.match_score = "ACCEPT", mid, round(score, 2)
+    return session.item_by_tx(int(mid.split(":")[1]))
+
+
+def _resolve_baseline(text: str, cands: list[Candidate], r: TurnResult
+                      ) -> tuple[str, str | None, float | None, list[Scored]]:
+    """레이어를 걷어낸 비교 기준 (mode=baseline). 측정 전용이며 시연 경로가 아니다.
+
+    보통의 음성 서비스가 하는 것: 전사 텍스트에 후보 표면형이 그대로 들어 있으면 실행하고,
+    없으면 "다시 말씀해 주세요". 되묻기도 후보 버튼도 없다.
+
+    레이어(자모 유사도 + 신뢰도 게이팅)는 여기서 쓰지 않는다. baseline 에서도 같이 돌면
+    두 경로의 차이가 사라져 tools/measure 의 전후 비교가 무의미해진다.
+    """
+    compact = re.sub(r"\s+", "", text)
+    hits = [c for c in cands if any(f and re.sub(r"\s+", "", f) in compact for f in c.surface_forms)]
+    scored = [Scored(c.id, c.label, 1.0 if c in hits else 0.0) for c in cands]
+    r.candidates = [s.to_dict() for s in scored]
+    r.path.append("substring")
+    if len(hits) == 1:
+        r.decision, r.matched_candidate, r.match_score = "ACCEPT", hits[0].id, 1.0
+        return "ACCEPT", hits[0].id, 1.0, scored
+    # 0개(못 찾음)나 2개 이상(가릴 방법 없음) 모두 실패로 끝난다
+    r.decision, r.matched_candidate, r.match_score = "BUTTON", None, None
+    return "BUTTON", None, None, scored
+
+
 def _resolve(session: Session, ctx: TurnContext, text: str | None, cands: list[Candidate], r: TurnResult
              ) -> tuple[str, str | None, float | None, list[Scored]]:
     if not text or not cands:
         return "BUTTON", None, None, []
+    if session.mode == "baseline":
+        return _resolve_baseline(text, cands, r)
     scored = score_candidates(text, cands)
     r.candidates = [s.to_dict() for s in scored]
     r.path.append("jamo")

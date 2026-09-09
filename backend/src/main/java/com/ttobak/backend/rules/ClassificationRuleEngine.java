@@ -203,18 +203,25 @@ public class ClassificationRuleEngine {
         return days + "일 전";
     }
 
-    /** 아침(05-11) / 낮(11-17) / 저녁(17-21) / 밤(그 외) */
+    /**
+     * 새벽(~06) / 아침(06-12) / 오후(12-18) / 저녁(18~).
+     *
+     * <p>경계는 AI 서버 {@code app/core/relative_time.py:part_of_day} 와 반드시 같아야 한다.
+     * 예전에는 아침 05-11 / 오후 11-17 이라 05-06, 11-12, 17-18, 21-05 구간에서 두 서비스가
+     * 엇갈렸다. 브리핑 문장(AI 서버)과 설명 facts(여기)가 같은 거래를 "오늘 아침"과 "오늘 오후"로
+     * 다르게 말하는 일이 실제로 났다. 한쪽을 고치면 다른 쪽도 같이 고칠 것.
+     */
     static String partOfDay(LocalDateTime at) {
         int h = at.getHour();
-        if (h >= 5 && h < 11) {
+        if (h < 6) {
+            return "새벽";
+        }
+        if (h < 12) {
             return "아침";
         }
-        if (h >= 11 && h < 17) {
+        if (h < 18) {
             return "오후";
         }
-        if (h >= 17 && h < 21) {
-            return "저녁";
-        }
-        return "밤";
+        return "저녁";
     }
 }

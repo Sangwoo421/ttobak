@@ -48,9 +48,12 @@ async function lookup() {
 </template>
 
 <style scoped>
+/* 창구 단말은 노트북이다. 폰 프레임을 뗀 뒤 요소가 화면 끝까지 늘어져 은행 업무 화면으로
+   보이지 않아, 읽기 좋은 폭으로 잡고 가운데 둔다. 좁은 화면에서는 그대로 꽉 찬다. */
 .home {
   width: 100%;
-  max-width: none;
+  max-width: 900px;
+  margin: 0 auto;
   min-height: 100%;
   padding: 44px 20px 36px;
 }

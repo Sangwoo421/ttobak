@@ -8,7 +8,7 @@ import MicStatus from '@/components/MicStatus.vue'
 import LevelBadge from '@/components/LevelBadge.vue'
 import { useConversation } from '@/composables/useConversation'
 import { ordinalLabel } from '@/utils/format'
-import { errorMessage } from '@/api/http'
+import { seniorErrorMessage } from '@/api/http'
 
 // 시연 2단계: POST /ai/session/start → 브리핑 글 크게 + 음성 재생 → 끝나면 선택 버튼 2개.
 // "더 물어보기"를 누르면 대화 화면으로 이동해 음성 대화를 시작한다.
@@ -26,7 +26,7 @@ async function load() {
   try {
     await conv.begin({ user_id: 1, onStarted: () => (loading.value = false) })
   } catch (e) {
-    error.value = errorMessage(e)
+    error.value = seniorErrorMessage(e)
   } finally {
     loading.value = false
   }
