@@ -80,7 +80,7 @@ function when(tx) {
   <div class="senior-home">
     <header class="s-top">
       <div>
-        <div class="s-mode">어르신 모드</div>
+        <div class="s-mode">간편 모드</div>
         <div class="s-name">내 계좌</div>
       </div>
       <button type="button" class="s-off" @click="emit('exit')">모드 끄기</button>

@@ -93,16 +93,7 @@ function outOfScope(label) {
     <header class="kb-top">
       <span class="logo">KB스타뱅킹</span>
       <span class="header-actions">
-        <button type="button" class="senior-toggle" @click="appMode.enable()">
-          <svg class="senior-toggle-icon" viewBox="0 0 24 24" aria-hidden="true">
-            <circle cx="16" cy="4" r="1" />
-            <path d="m18 19 1-7-6 1" />
-            <path d="m5 8 3-3 5.5 3-2.36 3.5" />
-            <path d="M4.24 14.5a5 5 0 0 0 6.88 6" />
-            <path d="M13.76 17.5a5 5 0 0 0-6.88-6" />
-          </svg>
-          <span>어르신 모드</span>
-        </button>
+        <button type="button" class="senior-toggle" @click="appMode.enable()">간편 모드</button>
         <button type="button" class="logout" @click="logout">로그아웃</button>
       </span>
     </header>
@@ -438,9 +429,6 @@ function outOfScope(label) {
 
 /* 어르신 모드 진입. 기획서의 "기존 앱 안의 부가 모드" 전제가 화면에서 보여야 한다. */
 .senior-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
   min-height: 40px;
   padding: 0 14px;
   border: 0;
@@ -451,15 +439,6 @@ function outOfScope(label) {
   font-weight: 800;
   color: var(--kb-brown);
   cursor: pointer;
-}
-.senior-toggle-icon {
-  width: 20px;
-  height: 20px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
 }
 .senior-toggle:active { background: #ffe5a3; }
 
