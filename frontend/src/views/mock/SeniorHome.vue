@@ -203,7 +203,7 @@ function when(tx) {
           class="s-row"
           @click="readOne(it)"
         >
-          <!-- 목록에는 통장에 찍히는 이름을 쓴다. spoken_name("'대한정보통신'이라는 곳")은 읽어줄 때의 말이라
+          <!-- 목록에는 통장에 찍히는 이름을 쓴다. spoken_name("'국민라이프'이라는 곳")은 읽어줄 때의 말이라
                한 줄에 넣으면 줄바꿈이 지저분해진다. -->
           <span class="s-row-main">
             <b class="s-row-name">{{ it.transaction.counterparty_name }}</b>

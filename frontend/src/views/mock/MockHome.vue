@@ -14,11 +14,11 @@ import { useSessionStore } from '@/stores/session'
 const router = useRouter()
 const player = useAudioPlayer()
 
-const account = { name: 'KB국민ONE통장', number: '123-45-****67', balance: 1234560 }
+const account = { name: 'KB국민ONE통장', number: '123-45-****67', balance: 1532400 }
 const recent = [
   { id: 101, title: '김철수', sub: '어제 15:12 · 이체', amount: 300000, type: 'IN' },
   { id: 102, title: '한국전력공사', sub: '오늘 08:30 · 자동이체', amount: 42000, type: 'OUT' },
-  { id: 103, title: '대한정보통신', sub: '오늘 09:10 · 자동이체', amount: 19000, type: 'OUT' },
+  { id: 103, title: '국민라이프', sub: '오늘 09:10 · 자동이체', amount: 19000, type: 'OUT' },
 ]
 const quick = [
   { label: '이체' },

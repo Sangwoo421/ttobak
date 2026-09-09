@@ -186,7 +186,7 @@ INSERT INTO counterparties (id, user_id, name, relation, kind, bank_name, accoun
 INSERT INTO transactions (id, account_id, type, amount, counterparty_name, memo, channel, occurred_at, counterparty_id) VALUES
   (101, 1, 'IN',  300000, '김철수',        '김철수',          '이체',      DATE_ADD(DATE_SUB(CURDATE(), INTERVAL 1 DAY), INTERVAL '15:12' HOUR_MINUTE), 1),  -- 어제 오후
   (102, 1, 'OUT',  42000, '한국전력공사',  '한전 전기요금',   '자동이체',  DATE_ADD(CURDATE(), INTERVAL '08:30' HOUR_MINUTE), 4),                            -- 오늘 아침
-  (103, 1, 'OUT',  19000, '대한정보통신',  '대한정보통신',    '자동이체',  DATE_ADD(CURDATE(), INTERVAL '09:10' HOUR_MINUTE), NULL),                         -- 오늘 아침
+  (103, 1, 'OUT',  19000, '국민라이프',    '국민라이프 회비',  '자동이체',  DATE_ADD(CURDATE(), INTERVAL '09:10' HOUR_MINUTE), NULL),                         -- 오늘 아침
   (104, 1, 'IN',  620000, '국민연금공단',  '국민연금',        '이체',      DATE_ADD(DATE_SUB(CURDATE(), INTERVAL 3 DAY), INTERVAL '10:00' HOUR_MINUTE), 5),
   (105, 1, 'OUT',   3500, '수수료',        '타행이체수수료',  '수수료',    DATE_ADD(DATE_SUB(CURDATE(), INTERVAL 5 DAY), INTERVAL '14:00' HOUR_MINUTE), NULL),
   (106, 1, 'IN',   50000, '김영희',        '엄마 용돈',       '이체',      DATE_ADD(DATE_SUB(CURDATE(), INTERVAL 7 DAY), INTERVAL '11:20' HOUR_MINUTE), 2);
