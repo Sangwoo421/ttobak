@@ -16,6 +16,8 @@ def recount(r: dict) -> int:
     """run_measure.judge 와 같은 규칙. NA(대조 불필요 의도)는 의도가 맞으면 1회."""
     d = r.get("decision") or ""
     intent_ok = r.get("intent") == r.get("expected_intent")
+    if r.get("reached") != "True":
+        return 3  # 도달 못 한 건은 최대치. 엉뚱한 답을 1회에 "채택"한 것도 실패다
     if r.get("expected_intent") == "UNKNOWN":
         return 3
     if d in ("ACCEPT", "LLM_TIEBREAK"):
@@ -37,7 +39,11 @@ def main() -> None:
     rows: dict[tuple[str, str], dict] = {}
     for path in args.details:
         for r in csv.DictReader(open(path, encoding="utf-8")):
-            rows[(r["file"], r["mode"])] = r
+            key = (r["file"], r["mode"])
+            # 뒤 파일이 이기되, STT 가 빈 건(API 실패)이 앞의 유효한 결과를 덮어쓰지는 않는다
+            if key in rows and rows[key].get("text") and not r.get("text"):
+                continue
+            rows[key] = r
     files = sorted({f for f, _ in rows})
     # 두 경로 모두 STT 결과가 있는 건만 센다 (한쪽만 빈 문자열이면 레이어 비교가 아니라 API 실패다)
     valid = [f for f in files if all(rows.get((f, m), {}).get("text") for m in ("baseline", "layered"))]
