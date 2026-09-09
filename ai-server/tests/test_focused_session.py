@@ -62,7 +62,7 @@ def test_focused_start_reads_only_that_transaction(client):
 def test_focused_confirmed_does_not_repeat_itself(client):
     """브리핑 문구가 이미 '누가 얼마'를 말하므로 설명이 같은 말을 반복하면 안 된다."""
     text = _start(client, transaction_id=101)["briefing"]["text"]
-    assert text.count("삼십만 원") == 1
+    assert text.count("300,000원") == 1
     assert text.count("김철수") == 1
 
 
