@@ -7,6 +7,7 @@ import SeniorHome from './SeniorHome.vue'
 import { useAppModeStore } from '@/stores/appMode'
 
 // KB스타뱅킹 느낌의 정적 홈 목업. 위쪽 푸시 알림 배너를 누르면 어르신 모드 브리핑으로 들어간다.
+// 어르신 모드는 앱의 모드다(appMode 스토어). 화면을 옮겨 다니거나 새로고침해도 유지된다.
 // (담당 조태석) 시연 1단계. 여기서는 어떤 API 도 부르지 않는다.
 const router = useRouter()
 const player = useAudioPlayer()
@@ -30,12 +31,9 @@ function openBriefing() {
   router.push('/senior/briefing')
 }
 
-function openChat() {
-  player.unlock()
-  router.push({ path: '/senior/chat', query: { start: 'true' } })
-}
-
 // 어르신 모드는 앱의 모드다. 화면을 옮겨 다녀도 유지되어야 하므로 스토어에 있다.
+// (중간에 있던 "또박또박 챗봇" 진입 버튼은 카드형 UI 라 은행 홈 레이아웃을 깼어서 없앴다 -
+//  어르신 모드 진입은 상단 버튼 하나로 통일한다.)
 const appMode = useAppModeStore()
 
 // 이체·조회·카드처럼 기존 앱이 이미 하는 일은 만들지 않는다(기획서 "적용 형태").
@@ -76,17 +74,6 @@ function outOfScope(label) {
         <button type="button" @click="outOfScope('이체')">이체</button>
         <button type="button" @click="outOfScope('내역 조회')">내역</button>
       </div>
-    </section>
-
-    <section class="chat-entry">
-      <button type="button" @click="openChat">
-        <span class="chat-icon" aria-hidden="true">🎙</span>
-        <span class="chat-copy">
-          <strong>또박또박 챗봇</strong>
-          <small>말하거나 글로 편하게 물어보세요</small>
-        </span>
-        <span class="chat-arrow" aria-hidden="true">›</span>
-      </button>
     </section>
 
     <section class="quick">
@@ -256,67 +243,6 @@ function outOfScope(label) {
   background: rgba(255, 255, 255, 0.7);
   font-weight: 800;
   font-size: 15px;
-}
-
-.chat-entry {
-  margin: 4px 16px 8px;
-}
-
-.chat-entry button {
-  width: 100%;
-  min-height: 82px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  border: 3px solid #1b1b1b;
-  border-radius: 18px;
-  background: #fff;
-  color: #1b1b1b;
-  padding: 12px 16px;
-  text-align: left;
-  box-shadow: var(--shadow);
-}
-
-.chat-entry button:focus-visible {
-  outline: 5px solid #1a56b0;
-  outline-offset: 3px;
-}
-
-.chat-icon {
-  width: 48px;
-  height: 48px;
-  flex: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background: var(--kb-yellow);
-  font-size: 24px;
-}
-
-.chat-copy {
-  min-width: 0;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.chat-copy strong {
-  font-size: 20px;
-  font-weight: 900;
-}
-
-.chat-copy small {
-  color: #666;
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.chat-arrow {
-  flex: none;
-  font-size: 34px;
-  font-weight: 700;
 }
 
 .quick {

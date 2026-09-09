@@ -28,13 +28,13 @@ def _b(id_: str, label: str, kind: str = "secondary") -> dict:
 
 
 BUTTONS: dict[str, list[dict]] = {
-    "LISTENING": [_b("ASK_MORE", "더 물어보기", "primary"), _b("GO_COUNTER", "창구 갈 일 정리"), _b("STOP", "그만", "danger")],
-    "EXPLAIN": [_b("REPEAT", "다시 들려주세요"), _b("GO_COUNTER", "창구 갈 일 정리"), _b("STOP", "그만", "danger")],
+    "LISTENING": [_b("ASK_MORE", "더 물어보기", "primary"), _b("GO_COUNTER", "창구 갈 일 정리"), _b("STOP", "대화 종료", "danger")],
+    "EXPLAIN": [_b("REPEAT", "다시 들려주세요"), _b("GO_COUNTER", "창구 갈 일 정리"), _b("STOP", "대화 종료", "danger")],
     "OFFER_ADD_QUESTION": [_b("YES", "네, 적어주세요", "primary"), _b("NO", "아니요")],
     "SLOT_RECIPIENT": [_b("NO", "아니에요")],
     "SLOT_AMOUNT": [_b("NO", "아니에요")],
     "CONFIRM": [_b("YES", "맞아요", "primary"), _b("NO", "아니에요", "danger")],
-    "CLARIFY": [_b("REPEAT", "다시 들려주세요"), _b("STOP", "그만", "danger")],
+    "CLARIFY": [_b("REPEAT", "다시 들려주세요"), _b("STOP", "대화 종료", "danger")],
     "SUMMARY": [],
     "DONE": [],
     "END": [],

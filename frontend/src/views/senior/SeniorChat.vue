@@ -105,6 +105,11 @@ async function sendText() {
             <BigButton kind="primary" @click="router.push('/mock/home')">홈으로</BigButton>
           </template>
 
+          <template v-else-if="conv.stopping.value">
+            <MicStatus status="processing" :level="0" />
+            <p class="voice-guide">정리하고 있어요…</p>
+          </template>
+
           <template v-else>
             <MicStatus :status="conv.micStatus.value" :level="recorder.level.value" />
             <p class="voice-guide">{{ voiceGuide }}</p>
