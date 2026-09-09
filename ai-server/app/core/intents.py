@@ -27,8 +27,10 @@ RULES: list[tuple[str, re.Pattern]] = [
     ("REQUEST_TRANSFER", re.compile(r"보내|부쳐|이체|송금|넣어")),
     ("ASK_WHO", re.compile(r"누가|누구")),
     ("ASK_AMOUNT", re.compile(r"얼마")),
+    # MUTE 는 ASK_ABOUT_TX 보다 앞에 둔다. "전기세는 매번 안 들어도 돼"처럼 뮤트 문장은 거의 항상
+    # 거래 상대명을 부르는데, ASK_ABOUT_TX 의 보조 트리거(상대명 언급)가 먼저 잡아 버리면 뮤트가 영영 안 잡힌다.
+    ("MUTE_ITEM", re.compile(r"안 ?들어도|안 ?읽어|읽지 ?마|끄|빼줘")),
     ("ASK_ABOUT_TX", re.compile(r"뭐야|뭐지|무슨|뭔|어디")),
-    ("MUTE_ITEM", re.compile(r"안 ?들어도|끄|빼줘")),
     ("YES", re.compile(r"^(응|어|네|예|맞|그래|좋아|해줘)")),
     ("NO", re.compile(r"^(아니|아냐|틀|안 ?해)")),
 ]

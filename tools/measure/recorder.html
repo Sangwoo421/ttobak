@@ -67,20 +67,20 @@
 
 <script>
 const ROWS = [
-  {file:"demo_03_first_what.wav", speaker:"팀원A", text:"첫 번째 거 그게 뭐야", notes:"중간에 1초 쉼"},
-  {file:"demo_04_third_what.wav", speaker:"팀원A", text:"세 번째 그 정보통신인가 그건 뭐야", notes:"고유명사 흐림"},
-  {file:"demo_06_transfer_son.wav", speaker:"팀원B", text:"아들이 뭐 보내라는데 이십만 원인가", notes:"웅얼거림 · 중간에 쉼"},
-  {file:"demo_08_mumble.wav", speaker:"팀원B", text:"으음 그 저기", notes:"의도 없음 → 못 알아듣는 게 정답"},
-  {file:"s01_how_much_second.wav", speaker:"팀원C", text:"두 번째 건 얼마 나간 거야", notes:""},
-  {file:"s02_who_sent.wav", speaker:"팀원C", text:"누가 보낸 거야 첫 번째", notes:"어순 도치"},
-  {file:"s03_repeat.wav", speaker:"팀원D", text:"못 들었어 다시 한 번", notes:""},
-  {file:"s04_go_counter.wav", speaker:"팀원D", text:"은행 가서 할게 정리해줘", notes:""},
-  {file:"s05_daughter_50.wav", speaker:"팀원E", text:"우리 딸한테 오만 원만 부쳐줘", notes:"별칭 \"우리 딸\""},
-  {file:"s06_grandson.wav", speaker:"팀원E", text:"손자 민수 삼만 원", notes:"동사 생략"},
-  {file:"s07_hanjeon.wav", speaker:"팀원A", text:"한전인가 그거 왜 나갔어", notes:"별칭 \"한전\""},
-  {file:"s08_stop.wav", speaker:"팀원B", text:"그만 됐어", notes:""},
-  {file:"s09_mute.wav", speaker:"팀원C", text:"전기세는 매번 안 들어도 돼", notes:""},
-  {file:"s10_dialect_son.wav", speaker:"팀원D", text:"아들내미한테 돈 좀 넣어주소 십만 원", notes:"사투리"},
+  {file:"demo_03_first_what.wav", speaker:"팀원A", text:"아까 그 첫 번째 거 있잖아… 그게 뭔 돈이여", notes:"중간에 1~2초 쉼 · 충청 어미"},
+  {file:"demo_04_third_what.wav", speaker:"팀원A", text:"세 번째 그… 무슨 통신인가 뭐시긴가… 그게 뭐야", notes:"고유명사 뭉개서"},
+  {file:"demo_06_transfer_son.wav", speaker:"팀원B", text:"우리 큰애가 돈 좀 부치라 그러는데… 그 이십만 원인가… 어떻게 하는 거야", notes:"별칭 '큰애' · 웅얼거림 · 쉼"},
+  {file:"demo_08_mumble.wav", speaker:"팀원B", text:"아이고 그… 저기 뭐냐… 그거…", notes:"의도 없음 → 못 알아듣는 게 정답"},
+  {file:"s01_amount_slur.wav", speaker:"팀원C", text:"저… 저번에 그… 전기세 그거 얼마 나간 거여", notes:"어눌하게 · 말 더듬 · 충청"},
+  {file:"s02_who_gs.wav", speaker:"팀원C", text:"삼십만 원 그거 누가 여줬노… 철수가 여줬나", notes:"경상 사투리 · 이름이 뒤에"},
+  {file:"s03_repeat_gs.wav", speaker:"팀원D", text:"뭐라꼬? 잘 못 들었다… 한 번만 더 해봐라", notes:"경상 · 어눌하게"},
+  {file:"s04_counter_jl.wav", speaker:"팀원D", text:"됐당께… 내가 은행 가서 물어볼랑께, 거기다 적어놔", notes:"전라 사투리 · 앞부분만 들으면 '그만'처럼"},
+  {file:"s05_daughter_slur.wav", speaker:"팀원E", text:"영희한테… 우리 딸… 오만 원만 좀 보내주라", notes:"이름+별칭 · 어눌하게 · 쉼"},
+  {file:"s06_grandson_gs.wav", speaker:"팀원E", text:"민수 손주 놈한테… 삼만 원만 좀 넣어도", notes:"경상 · 동사 흐리게"},
+  {file:"s07_hanjeon_cc.wav", speaker:"팀원A", text:"한전인가 뭔가 그거… 왜 또 나갔댜", notes:"충청 사투리 · 별칭 '한전'"},
+  {file:"s08_stop_gs.wav", speaker:"팀원B", text:"아이고 됐다… 고마 치아라", notes:"경상 사투리 강하게"},
+  {file:"s09_mute_cc.wav", speaker:"팀원C", text:"전기세는 맨날 나가는 거니께… 그건 인제 안 들어도 돼", notes:"충청 · 어눌하게 · 긴 앞말"},
+  {file:"s10_dialect_son.wav", speaker:"팀원D", text:"아들내미한테 돈 좀 넣어주소… 십만 원… 아이다, 이십만 원", notes:"경상 · 금액 정정"},
 ];
 const RATE = 16000;
 let dirHandle = null;
