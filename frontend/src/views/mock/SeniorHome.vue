@@ -24,7 +24,6 @@ const items = ref([])
 const loading = ref(true)
 const error = ref('')
 const transferNotice = ref('')
-const listSection = ref(null)
 
 onMounted(async () => {
   try {
@@ -55,15 +54,6 @@ function openSummary() {
   go(`/senior/summary/${session.latest_summary_id}`)
 }
 
-function openTransfer() {
-  transferNotice.value = '이체는 안전을 위해 기존 KB스타뱅킹 이체 화면에서 이용해 주세요.'
-}
-
-function openHistory() {
-  transferNotice.value = ''
-  listSection.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-}
-
 function when(tx) {
   const d = new Date(tx.occurred_at)
   if (Number.isNaN(d.getTime())) return ''
@@ -80,7 +70,7 @@ function when(tx) {
   <div class="senior-home">
     <header class="s-top">
       <div>
-        <div class="s-mode">어르신 모드</div>
+        <div class="s-mode">간편 모드</div>
         <div class="s-name">내 계좌</div>
       </div>
       <button type="button" class="s-off" @click="emit('exit')">모드 끄기</button>
@@ -90,30 +80,38 @@ function when(tx) {
       <div class="s-account-name">{{ account.name }}</div>
       <div class="s-account-number">{{ account.number }}</div>
       <div class="s-amount">{{ won(account.balance) }}</div>
-      <div class="s-balance-actions">
-        <button type="button" @click="openTransfer">이체</button>
-        <button type="button" @click="openHistory">내역</button>
-      </div>
     </section>
 
     <p v-if="transferNotice" class="s-notice" role="status">{{ transferNotice }}</p>
 
     <section class="s-actions">
-      <button type="button" class="s-act summary" @click="openSummary">
-        <span class="txt"><b>창구 요약서 보기</b><small>정리해 둔 창구 업무를 다시 확인해요</small></span>
-      </button>
       <button type="button" class="s-act primary" @click="openBriefing">
+        <span class="s-act-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg>
+        </span>
         <span class="txt"><b>들어오고 나간 돈 듣기</b><small>최근 것부터 읽어드려요</small></span>
       </button>
       <button type="button" class="s-act" @click="openChat">
+        <span class="s-act-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3z"/><path d="M17 11a5 5 0 0 1-10 0"/><path d="M12 19v2"/></svg>
+        </span>
         <span class="txt"><b>말로 물어보기</b><small>궁금한 걸 그냥 말씀하세요</small></span>
       </button>
+      <button type="button" class="s-act summary" @click="openSummary">
+        <span class="s-act-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V9l8-6 8 6v12"/><path d="M9 21v-6h6v6"/></svg>
+        </span>
+        <span class="txt"><b>창구 요약서 보기</b><small>정리해 둔 업무를 확인해요</small></span>
+      </button>
       <button type="button" class="s-act" @click="openCounter">
-        <span class="txt"><b>지점·대기표 선택</b><small>갈 은행을 고르고 번호표를 받아요</small></span>
+        <span class="s-act-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+        </span>
+        <span class="txt"><b>지점·대기표 선택</b><small>번호표를 미리 받아요</small></span>
       </button>
     </section>
 
-    <section ref="listSection" class="s-list">
+    <section class="s-list">
       <h3>들어오고 나간 돈</h3>
       <p class="s-help">궁금한 줄을 누르면 읽어드려요</p>
 
@@ -130,10 +128,13 @@ function when(tx) {
         <!-- 목록에는 통장에 찍히는 이름을 쓴다. spoken_name("'대한정보통신'이라는 곳")은 읽어줄 때의 말이라
              한 줄에 넣으면 줄바꿈이 지저분해진다. -->
         <span class="s-row-main">
-          <b class="s-row-name">{{ it.transaction.counterparty_name }}</b>
-          <span class="s-row-sub">
-            {{ when(it.transaction) }}
-            <LevelBadge :level="it.classification.level" />
+          <span class="s-row-avatar" aria-hidden="true">{{ it.transaction.counterparty_name.charAt(0) }}</span>
+          <span class="s-row-text">
+            <b class="s-row-name">{{ it.transaction.counterparty_name }}</b>
+            <span class="s-row-sub">
+              {{ when(it.transaction) }}
+              <LevelBadge :level="it.classification.level" />
+            </span>
           </span>
         </span>
         <span class="s-row-right">
@@ -200,26 +201,6 @@ function when(tx) {
   font-size: 42px; font-weight: 900; letter-spacing: -1.5px; margin-top: 18px;
   color: #2b2620; line-height: 1.1;
 }
-.s-balance-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin-top: 20px;
-}
-.s-balance-actions button {
-  min-height: 72px;
-  border: 2px solid rgba(83, 64, 0, 0.2);
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.78);
-  color: #2b2620;
-  font-size: 22px;
-  font-weight: 900;
-}
-.s-balance-actions button:active { background: #fff; }
-.s-balance-actions button:focus-visible {
-  outline: 5px solid #5f543e;
-  outline-offset: 2px;
-}
 .s-notice {
   margin: 12px 16px 0;
   padding: 14px 16px;
@@ -235,12 +216,12 @@ function when(tx) {
 
 /* 메뉴는 잔액 영역과 겹치지 않게 분리해 각 영역의 경계를 또렷하게 보여준다. */
 .s-actions {
-  display: grid; grid-auto-rows: 1fr; gap: 12px; padding: 0 16px;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 16px;
   margin-top: 16px; position: relative; z-index: 1;
 }
 .s-act {
-  display: block; width: 100%; height: 100%;
-  min-height: 88px; padding: 14px 16px; text-align: left;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 10px; width: 100%;
+  min-height: 150px; padding: 16px; text-align: left;
   border: 2px solid #d9d3c7; border-radius: 18px; background: #fff; cursor: pointer;
   box-shadow: 0 4px 14px rgba(69, 58, 25, 0.08);
   transition: transform 0.08s ease;
@@ -248,9 +229,15 @@ function when(tx) {
 .s-act:active { transform: scale(0.985); }
 .s-act.primary { border-color: #d9b238; background: #fff; }
 .s-act.summary { border-color: #d9b238; }
+.s-act-icon {
+  width: 44px; height: 44px; flex: none; border-radius: 12px;
+  background: var(--kb-yellow-soft, #fff4cc); color: #8a6d00;
+  display: flex; align-items: center; justify-content: center;
+}
+.s-act-icon svg { width: 22px; height: 22px; }
 .s-act .txt { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-.s-act b { font-size: 22px; font-weight: 900; color: #1b1b1b; letter-spacing: -0.3px; line-height: 1.25; }
-.s-act small { font-size: 15px; color: #6b6455; line-height: 1.35; word-break: keep-all; }
+.s-act b { font-size: 19px; font-weight: 900; color: #1b1b1b; letter-spacing: -0.3px; line-height: 1.25; }
+.s-act small { font-size: 13px; color: #6b6455; line-height: 1.35; word-break: keep-all; }
 
 .s-list { padding: 22px 16px 0; }
 .s-list h3 { font-size: 23px; font-weight: 900; margin: 0 0 3px; letter-spacing: -0.4px; }
@@ -267,7 +254,13 @@ function when(tx) {
   transition: transform 0.08s ease, background 0.12s ease;
 }
 .s-row:active { background: #f4f2ed; transform: scale(0.99); }
-.s-row-main { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.s-row-main { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.s-row-avatar {
+  width: 40px; height: 40px; flex: none; border-radius: 50%;
+  background: #f1eee6; color: #8a6d00; font-size: 16px; font-weight: 900;
+  display: flex; align-items: center; justify-content: center;
+}
+.s-row-text { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .s-row-name {
   font-size: 20px; font-weight: 900; color: #1b1b1b; letter-spacing: -0.3px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;

@@ -66,7 +66,9 @@ async function startDirectChat({ transaction_id = null, suppressAutoListen = fal
 onMounted(() => {
   const tx = Number(route.query.tx)
   if (Number.isFinite(tx) && tx > 0) return startDirectChat({ transaction_id: tx })
-  if (route.query.start === 'true') return startDirectChat({ suppressAutoListen: true })
+  // 이미 진행 중인 대화가 있으면(예: 대기표 화면에서 "창구에서 할 일을 먼저 정리할래요"로
+  // 돌아온 경우) 새 세션을 만들지 않고 이어간다 - 그래야 이미 담아둔 요청/질문이 안 날아간다.
+  if (route.query.start === 'true' && !session.hasSession) return startDirectChat({ suppressAutoListen: true })
   if (!session.hasSession) router.replace('/senior/briefing')
 })
 
