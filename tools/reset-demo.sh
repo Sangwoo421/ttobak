@@ -34,5 +34,5 @@ UPDATE notifications SET heard_at = NULL, read_at = NULL WHERE id IN (1001, 1002
 DELETE FROM mute_rules;
 DELETE FROM dialog_logs;
 SELECT '── 복구 완료 ──' AS '';
-SELECT id, counterparty_name, heard_at FROM notifications n JOIN transactions t ON t.id = n.transaction_id WHERE n.id IN (1001,1002,1003);
+SELECT n.id, t.counterparty_name, n.heard_at FROM notifications n JOIN transactions t ON t.id = n.transaction_id WHERE n.id IN (1001,1002,1003);
 SQL

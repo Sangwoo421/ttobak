@@ -46,3 +46,4 @@ Thumbs.db
 CLAUDE.md
 **/CLAUDE.md
 .claude/
+tools/.logs/

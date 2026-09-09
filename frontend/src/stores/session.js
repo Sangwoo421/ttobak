@@ -2,8 +2,24 @@
 // 오디오 재생·마이크는 여기서 다루지 않는다 → composables/useConversation.js 가 조합한다.
 import { defineStore } from 'pinia'
 import * as ai from '@/api/ai'
+import { won } from '@/utils/format'
 
 let msgSeq = 0
+
+/** ADD_REQUEST payload → "아들 김철수 님에게 300,000원 보내기" (필드가 없으면 순하게 줄인다) */
+function describeRequest(p = {}) {
+  const name = p.recipient_name || p.recipient || ''
+  const rel = name && p.recipient_relation ? `${p.recipient_relation} ` : ''
+  const who = name ? `${rel}${name} 님에게 ` : ''
+  const amount = p.amount != null && p.amount !== '' ? `${won(p.amount)} ` : ''
+  const body = `${who}${amount}보내기`.replace(/\s+/g, ' ').trim()
+  return who || amount ? body : '창구에서 이체 도와드리기'
+}
+
+/** ADD_QUESTION payload → 창구에 여쭤볼 문장 */
+function describeQuestion(p = {}) {
+  return (p.text || '').trim() || '창구에 여쭤볼 내용 담기'
+}
 
 export const useSessionStore = defineStore('session', {
   state: () => ({
@@ -11,7 +27,8 @@ export const useSessionStore = defineStore('session', {
     state: 'IDLE', // BRIEFING | LISTENING | EXPLAIN | OFFER_ADD_QUESTION | SLOT_* | CONFIRM | CLARIFY | SUMMARY | DONE | END
     startState: 'LISTENING', // 브리핑 재생이 끝난 뒤 올라갈 상태. 거래 한 건이 확인 불가면 OFFER_ADD_QUESTION
     tone: 'friendly', // friendly | confirm
-    messages: [], // { id, role: 'assistant'|'user', text, tone, at }
+    messages: [], // { id, role: 'assistant'|'user'|'counter', text, tone, at }
+    counterItems: [], // 창구 목록에 담긴 항목 (ADD_REQUEST / ADD_QUESTION). 화면에서 사라지지 않는다
     buttons: [], // ui.buttons
     choices: [], // ui.choices (CLARIFY 일 때만)
     listen: false, // ui.listen: true 면 음성 끝난 뒤 마이크 자동 시작
@@ -29,8 +46,14 @@ export const useSessionStore = defineStore('session', {
     effectiveSilenceMs: (s) => s.silenceOverride ?? s.silenceMs ?? 2000,
     isConfirm: (s) => s.tone === 'confirm',
     hasSession: (s) => !!s.session_id,
-    /** 화면 하단에 그릴 버튼. STOP(대화 종료)도 이제 헤더가 아니라 여기 큰 버튼으로 나온다. */
-    mainButtons: (s) => s.buttons || [],
+    /** 지금까지 창구 목록에 담은 개수 */
+    counterCount: (s) => s.counterItems.length,
+    /** 화면 하단에 그릴 버튼. STOP(대화 종료)도 이제 헤더가 아니라 여기 큰 버튼으로 나온다.
+     *  담긴 게 있으면 "창구 갈 일 정리" 버튼에 개수를 붙인다 (0개면 안 붙인다). */
+    mainButtons: (s) => {
+      const n = s.counterItems.length
+      return (s.buttons || []).map((b) => (b.id === 'GO_COUNTER' && n > 0 ? { ...b, label: `${b.label} (${n})` } : b))
+    },
   },
 
   actions: {
@@ -42,6 +65,16 @@ export const useSessionStore = defineStore('session', {
 
     pushMessage(role, text, tone = 'friendly') {
       this.messages.push({ id: ++msgSeq, role, text, tone, at: Date.now() })
+    },
+
+    /** 턴이 ADD_REQUEST / ADD_QUESTION 을 주면 호출.
+     *  담긴 항목을 배열에 쌓고, 대화 흐름에는 사라지지 않는 카드(role='counter')를 남긴다.
+     *  서버 계약은 그대로다 — 이미 오는 action 을 화면용으로 옮겨 적을 뿐. */
+    addCounterItem(action) {
+      const isRequest = action?.type === 'ADD_REQUEST'
+      const summary = isRequest ? describeRequest(action?.payload || {}) : describeQuestion(action?.payload || {})
+      this.counterItems.push({ id: ++msgSeq, kind: isRequest ? 'request' : 'question', summary, at: Date.now() })
+      this.pushMessage('counter', `📋 창구 목록에 담았어요\n${summary}`)
     },
 
     /** POST /ai/session/start */

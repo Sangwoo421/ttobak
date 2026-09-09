@@ -22,6 +22,7 @@ const listEl = ref(null)
 const typedText = ref('')
 const starting = ref(false)
 const startError = ref('')
+const counterEmpty = ref(false) // 「창구 갈 일 정리」로 들어왔는데 담긴 게 0건 → 안내만 보여준다
 const isConfirm = computed(() => session.tone === 'confirm')
 const disabled = computed(() => starting.value || session.pending || conv.busy.value)
 const voiceGuide = computed(() => {
@@ -33,10 +34,17 @@ const voiceGuide = computed(() => {
   return '마이크를 누르고 궁금한 내용을 말씀하세요.'
 })
 
-/** start=true 면 브리핑 없이 바로 대화. tx=101 이면 그 거래 한 건을 읽고 대화로 이어간다. */
-async function startDirectChat({ transaction_id = null } = {}) {
+/** start=true 면 브리핑 없이 바로 대화. tx=101 이면 그 거래 한 건을 읽고 대화로 이어간다.
+ *
+ *  suppressAutoListen=true (홈의 「말로 물어보기」로 진입): 예고 없이 녹음이 시작되면 어르신이
+ *  놀라고 첫 시도도 침묵·잡음으로 실패한다. 그래서 진입 시의 첫 자동 마이크만 막는다.
+ *  대화가 시작된 뒤의 ui.listen 자동 마이크(되물은 뒤 등)는 그대로 둔다 — autoListen 을 원래대로 되돌린다.
+ *  tx= 경로는 flag 를 주지 않으므로 지금 동작(읽어주고 바로 듣기)이 유지된다. */
+async function startDirectChat({ transaction_id = null, suppressAutoListen = false } = {}) {
   starting.value = true
   startError.value = ''
+  const prevAutoListen = conv.autoListen.value
+  if (suppressAutoListen) conv.autoListen.value = false
   try {
     // 거래를 눌러 들어온 경우에는 그 건을 읽어줘야 하므로 음성을 재생한다.
     await conv.begin({ user_id: 1, transaction_id, playBriefing: !!transaction_id })
@@ -44,21 +52,40 @@ async function startDirectChat({ transaction_id = null } = {}) {
   } catch (e) {
     startError.value = errorMessage(e)
   } finally {
+    if (suppressAutoListen) conv.autoListen.value = prevAutoListen
     starting.value = false
   }
 }
 
-/** 홈에서 "창구 갈 일 정리"로 바로 들어온 경우: 세션을 열고 곧장 요약서로 간다. */
+/** 홈에서 「창구 갈 일 정리」로 들어온 경우.
+ *  - 담아 둔 항목이 있으면 그 세션 그대로 요약서로 간다 (세션을 새로 열지 않는다).
+ *  - 담아 둔 게 없으면 안내만 보여준다.
+ *  어느 경우에도 이 경로로는 녹음이 시작되지 않는다 (요약서 버튼인데 마이크가 켜지는 건 명백히 잘못). */
 async function startCounter() {
-  await startDirectChat()
-  if (!startError.value) await conv.pressButton('GO_COUNTER')
+  if (session.hasSession && session.counterCount > 0) {
+    const prevAutoListen = conv.autoListen.value
+    conv.autoListen.value = false
+    try {
+      await conv.pressButton('GO_COUNTER') // OPEN_SUMMARY → afterTurn 이 /senior/summary/:id 로 이동
+    } finally {
+      conv.autoListen.value = prevAutoListen
+    }
+    return
+  }
+  counterEmpty.value = true
+}
+
+/** 안내 화면에서 "궁금한 것 물어보기" → 대화로. 여기서도 녹음은 자동으로 시작하지 않는다. */
+function askFromCounterEmpty() {
+  counterEmpty.value = false
+  startDirectChat({ suppressAutoListen: true })
 }
 
 onMounted(() => {
   const tx = Number(route.query.tx)
   if (Number.isFinite(tx) && tx > 0) return startDirectChat({ transaction_id: tx })
   if (route.query.counter === 'true') return startCounter()
-  if (route.query.start === 'true') return startDirectChat()
+  if (route.query.start === 'true') return startDirectChat({ suppressAutoListen: true })
   if (!session.hasSession) router.replace('/senior/briefing')
 })
 
@@ -80,6 +107,16 @@ async function sendText() {
   <SeniorShell :title="isConfirm ? '확인해 주세요' : '물어보기'">
     <ToneFrame :tone="session.tone">
       <div class="chat">
+        <!-- 「창구 갈 일 정리」인데 담긴 게 없을 때: 녹음도 대화도 시작하지 않고 안내만 -->
+        <div v-if="counterEmpty" class="counter-empty" role="status">
+          <p class="ce-emoji" aria-hidden="true">📝</p>
+          <p class="ce-title">아직 창구에 여쭤볼 것이 없어요</p>
+          <p class="ce-sub">먼저 궁금한 걸 물어보세요.</p>
+          <BigButton kind="primary" @click="askFromCounterEmpty">궁금한 것 물어보기</BigButton>
+          <BigButton kind="secondary" @click="router.push('/mock/home')">홈으로</BigButton>
+        </div>
+
+        <template v-else>
         <!-- 브리핑한 3건 (CONFIRM 톤에서는 숨겨 화면을 단순하게) -->
         <div v-if="!isConfirm && session.briefing?.items?.length" class="items-strip">
           <div v-for="it in session.briefing.items" :key="it.ordinal" class="chip">
@@ -154,6 +191,7 @@ async function sendText() {
             />
           </template>
         </div>
+        </template>
       </div>
     </ToneFrame>
   </SeniorShell>
@@ -165,6 +203,44 @@ async function sendText() {
   display: flex;
   flex-direction: column;
   min-height: 0;
+}
+
+.counter-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 32px 22px;
+  text-align: center;
+}
+
+.counter-empty .ce-emoji {
+  font-size: 56px;
+  line-height: 1;
+  margin: 0;
+}
+
+.counter-empty .ce-title {
+  margin: 0;
+  font-size: var(--senior-font-lg);
+  font-weight: 900;
+  color: var(--text);
+  word-break: keep-all;
+}
+
+.counter-empty .ce-sub {
+  margin: 0 0 6px;
+  font-size: var(--senior-font);
+  font-weight: 700;
+  color: var(--text);
+  word-break: keep-all;
+}
+
+.counter-empty > :deep(.big-btn) {
+  width: 100%;
+  max-width: 420px;
 }
 
 .items-strip {
