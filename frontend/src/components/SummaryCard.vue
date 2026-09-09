@@ -7,22 +7,19 @@ const props = defineProps({
   summary: { type: Object, required: true }, // Summary (openapi-backend)
   size: { type: String, default: 'senior' }, // senior | staff
   checkable: { type: Boolean, default: false }, // 직원: REQUEST/QUESTION 체크박스
-  showCode: { type: Boolean, default: true },
+  showHeader: { type: Boolean, default: true },
 })
 const emit = defineEmits(['toggle']) // (item, handled)
 
 const requests = computed(() => props.summary.items.filter((i) => i.section === 'REQUEST').sort((a, b) => a.ordinal - b.ordinal))
 const questions = computed(() => props.summary.items.filter((i) => i.section === 'QUESTION').sort((a, b) => a.ordinal - b.ordinal))
 const preps = computed(() => props.summary.items.filter((i) => i.section === 'PREP').sort((a, b) => a.ordinal - b.ordinal))
-
 const REQUEST_TYPE = { TRANSFER: '보내기(이체)' }
 </script>
 
 <template>
   <div class="summary-card" :class="size">
-    <header v-if="showCode" class="head">
-      <div class="code-label">창구 코드</div>
-      <div class="code">{{ summary.code }}</div>
+    <header v-if="showHeader" class="head">
       <div class="meta">
         <span class="ticket">번호표 <b>{{ summary.ticket_no }}</b>번</span>
         <span class="branch">{{ summary.branch_name }}</span>
@@ -90,7 +87,7 @@ const REQUEST_TYPE = { TRANSFER: '보내기(이체)' }
       <p v-if="!preps.length" class="muted">없음</p>
       <ul class="preps">
         <li v-for="item in preps" :key="item.id" :class="{ required: item.payload.required }">
-          {{ item.payload.item }}<span v-if="item.payload.required" class="req">(꼭)</span>
+          {{ item.payload.item }}<span v-if="item.payload.required" class="req">(필수)</span>
         </li>
       </ul>
     </section>
@@ -105,56 +102,105 @@ const REQUEST_TYPE = { TRANSFER: '보내기(이체)' }
 }
 
 .head {
-  background: var(--card);
-  border-radius: var(--radius);
-  padding: 18px;
+  background: linear-gradient(145deg, #fffdf7 0%, #fff7d9 100%);
+  border-radius: 22px;
+  padding: 20px 18px;
   text-align: center;
-  box-shadow: var(--shadow);
-  border: 3px solid var(--kb-yellow);
+  box-shadow: 0 8px 24px rgba(100, 76, 9, 0.1);
+  border: 2px solid #e7bd3b;
 }
 
-.code-label {
-  color: var(--muted);
-  font-weight: 700;
-}
-
-.code {
-  font-size: 64px;
-  font-weight: 900;
-  letter-spacing: 0.12em;
-  line-height: 1.1;
-  margin: 4px 0 8px;
-  font-variant-numeric: tabular-nums;
+.summary-card.senior .head {
+  background: #fff;
+  border-color: #d9b238;
+  box-shadow: 0 8px 24px rgba(69, 58, 25, 0.1);
 }
 
 .meta {
   display: flex;
   justify-content: center;
-  gap: 16px;
+  gap: 8px;
   flex-wrap: wrap;
   font-weight: 700;
 }
 
+.summary-card.senior .ticket,
+.summary-card.senior .branch {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 11px;
+  border-radius: 999px;
+}
+
+.summary-card.senior .ticket {
+  background: var(--kb-yellow);
+  border: 2px solid #d4a300;
+  color: #2b2620;
+}
+
+.summary-card.senior .branch {
+  background: #fff;
+  border: 1px solid #d9d3c7;
+  color: #34495e;
+}
+
 .meta.small {
-  margin-top: 6px;
+  margin-top: 10px;
   font-size: 0.85em;
   color: var(--muted);
   align-items: center;
 }
 
+.summary-card.senior .status-badge {
+  padding: 5px 11px;
+  font-size: 15px;
+}
+
 section {
   background: var(--card);
-  border-radius: var(--radius);
-  padding: 16px;
-  box-shadow: var(--shadow);
+  border: 1px solid #d5dde6;
+  border-radius: 20px;
+  padding: 18px;
+  box-shadow: 0 5px 18px rgba(36, 54, 77, 0.07);
 }
 
 section h2 {
-  margin: 0 0 10px;
-  font-size: 1.1em;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 14px;
+  font-size: 1.05em;
   font-weight: 900;
-  border-left: 8px solid var(--kb-yellow);
-  padding-left: 10px;
+  border: 0;
+  padding: 0;
+  color: #2b2620;
+}
+
+.summary-card.senior section h2::before {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--kb-yellow);
+  border: 2px solid #d4a300;
+  color: #2b2620;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.summary-card.senior .request-section h2::before {
+  content: '1';
+}
+
+.summary-card.senior .question-section h2::before {
+  content: '2';
+}
+
+.summary-card.senior .prep-section h2::before {
+  content: '3';
 }
 
 .item {
@@ -186,6 +232,7 @@ section h2 {
 
 .title {
   font-weight: 800;
+  line-height: 1.45;
   margin-bottom: 6px;
 }
 
@@ -209,8 +256,8 @@ section h2 {
 
 dl {
   display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 4px 14px;
+  grid-template-columns: 88px minmax(0, 1fr);
+  gap: 8px 12px;
   margin: 0;
 }
 
@@ -228,6 +275,7 @@ dd {
 dd.amount {
   font-size: 1.15em;
   font-weight: 900;
+  color: #665219;
 }
 
 .sub {
@@ -236,7 +284,32 @@ dd.amount {
 
 .preps {
   margin: 0;
-  padding-left: 22px;
+  padding: 0;
+  list-style: none;
+}
+
+.summary-card.senior .preps li {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 8px 0;
+  border-top: 1px solid #e1e7ed;
+}
+
+.summary-card.senior .preps li:first-child {
+  border-top: 0;
+}
+
+.summary-card.senior .preps li::before {
+  width: 10px;
+  height: 10px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  margin-right: 10px;
+  border-radius: 50%;
+  background: var(--ok);
+  content: '';
 }
 
 .preps li.required {
@@ -257,10 +330,6 @@ dd.amount {
   padding: 0;
   gap: 0;
   font-size: 15px;
-}
-
-.summary-card.staff .code {
-  font-size: 40px;
 }
 
 .summary-card.staff section h2 {
@@ -373,17 +442,12 @@ dd.amount {
 }
 
 .summary-card.staff .preps li::before {
-  width: 22px;
-  height: 22px;
+  width: 8px;
+  height: 8px;
   margin-right: 10px;
   border-radius: 50%;
-  background: #e6f7f1;
-  color: #228566;
-  content: '✓';
-  display: grid;
-  place-items: center;
-  font-size: 13px;
-  font-weight: 900;
+  background: #228566;
+  content: '';
 }
 
 .summary-card.staff .req {

@@ -7,7 +7,6 @@ import BigButton from '@/components/BigButton.vue'
 import MicButton from '@/components/MicButton.vue'
 import MicStatus from '@/components/MicStatus.vue'
 import SpeechBubble from '@/components/SpeechBubble.vue'
-import LevelBadge from '@/components/LevelBadge.vue'
 import { useConversation } from '@/composables/useConversation'
 import { seniorErrorMessage } from '@/api/http'
 
@@ -22,9 +21,16 @@ const listEl = ref(null)
 const typedText = ref('')
 const starting = ref(false)
 const startError = ref('')
-const counterEmpty = ref(false) // 「창구 갈 일 정리」로 들어왔는데 담긴 게 0건 → 안내만 보여준다
 const isConfirm = computed(() => session.tone === 'confirm')
 const disabled = computed(() => starting.value || session.pending || conv.busy.value)
+// 일반 상담은 ChatGPT처럼 글·음성으로 계속 이어간다.
+// 따라서 중복되는 "더 물어보기"와 대화를 끊는 "그만"은 숨기고,
+// 확인 단계의 선택과 창구 정리처럼 필요한 행동만 보여준다.
+const consultationButtons = computed(() => session.mainButtons.filter((button) => {
+  if (button.id === 'STOP') return false
+  if (!isConfirm.value && button.id === 'ASK_MORE') return false
+  return true
+}))
 const voiceGuide = computed(() => {
   if (conv.micStatus.value === 'listening') return '천천히 말씀하세요. 말씀을 마치면 자동으로 알아들어요.'
   if (conv.micStatus.value === 'processing') return '말씀하신 내용을 확인하고 있어요.'
@@ -57,34 +63,9 @@ async function startDirectChat({ transaction_id = null, suppressAutoListen = fal
   }
 }
 
-/** 홈에서 「창구 갈 일 정리」로 들어온 경우.
- *  - 담아 둔 항목이 있으면 그 세션 그대로 요약서로 간다 (세션을 새로 열지 않는다).
- *  - 담아 둔 게 없으면 안내만 보여준다.
- *  어느 경우에도 이 경로로는 녹음이 시작되지 않는다 (요약서 버튼인데 마이크가 켜지는 건 명백히 잘못). */
-async function startCounter() {
-  if (session.hasSession && session.counterCount > 0) {
-    const prevAutoListen = conv.autoListen.value
-    conv.autoListen.value = false
-    try {
-      await conv.pressButton('GO_COUNTER') // OPEN_SUMMARY → afterTurn 이 /senior/summary/:id 로 이동
-    } finally {
-      conv.autoListen.value = prevAutoListen
-    }
-    return
-  }
-  counterEmpty.value = true
-}
-
-/** 안내 화면에서 "궁금한 것 물어보기" → 대화로. 여기서도 녹음은 자동으로 시작하지 않는다. */
-function askFromCounterEmpty() {
-  counterEmpty.value = false
-  startDirectChat({ suppressAutoListen: true })
-}
-
 onMounted(() => {
   const tx = Number(route.query.tx)
   if (Number.isFinite(tx) && tx > 0) return startDirectChat({ transaction_id: tx })
-  if (route.query.counter === 'true') return startCounter()
   if (route.query.start === 'true') return startDirectChat({ suppressAutoListen: true })
   if (!session.hasSession) router.replace('/senior/briefing')
 })
@@ -107,33 +88,35 @@ async function sendText() {
   <SeniorShell :title="isConfirm ? '확인해 주세요' : '물어보기'">
     <ToneFrame :tone="session.tone">
       <div class="chat">
-        <!-- 「창구 갈 일 정리」인데 담긴 게 없을 때: 녹음도 대화도 시작하지 않고 안내만 -->
-        <div v-if="counterEmpty" class="counter-empty" role="status">
-          <p class="ce-emoji" aria-hidden="true">📝</p>
-          <p class="ce-title">아직 창구에 여쭤볼 것이 없어요</p>
-          <p class="ce-sub">먼저 궁금한 걸 물어보세요.</p>
-          <BigButton kind="primary" @click="askFromCounterEmpty">궁금한 것 물어보기</BigButton>
-          <BigButton kind="secondary" @click="router.push('/mock/home')">홈으로</BigButton>
-        </div>
-
-        <template v-else>
-        <!-- 브리핑한 3건 (CONFIRM 톤에서는 숨겨 화면을 단순하게) -->
-        <div v-if="!isConfirm && session.briefing?.items?.length" class="items-strip">
-          <div v-for="it in session.briefing.items" :key="it.ordinal" class="chip">
-            <span class="n">{{ it.ordinal }}</span>
-            <span class="l">{{ it.short_label }}</span>
-            <LevelBadge :level="it.level" />
+        <div class="conversation-panel">
+          <div ref="listEl" class="messages" role="log" aria-live="polite" aria-relevant="additions text">
+            <div v-if="startError" class="start-error" role="alert">
+              <p>{{ startError }}</p>
+              <BigButton kind="secondary" @click="startDirectChat">다시 연결하기</BigButton>
+            </div>
+            <p v-else-if="starting" class="starting">챗봇을 준비하고 있어요…</p>
+            <SpeechBubble v-for="m in session.messages" :key="m.id" :role="m.role" :text="m.text" :tone="m.tone" />
+            <p v-if="conv.hint.value" class="hint" role="alert">{{ conv.hint.value }}</p>
           </div>
-        </div>
 
-        <div ref="listEl" class="messages" role="log" aria-live="polite" aria-relevant="additions text">
-          <div v-if="startError" class="start-error" role="alert">
-            <p>{{ startError }}</p>
-            <BigButton kind="secondary" @click="startDirectChat">다시 연결하기</BigButton>
-          </div>
-          <p v-else-if="starting" class="starting">챗봇을 준비하고 있어요…</p>
-          <SpeechBubble v-for="m in session.messages" :key="m.id" :role="m.role" :text="m.text" :tone="m.tone" />
-          <p v-if="conv.hint.value" class="hint" role="alert">{{ conv.hint.value }}</p>
+          <form
+            v-if="!startError && !conv.ended.value && !conv.stopping.value"
+            class="text-composer"
+            aria-label="글로 대화하기"
+            @submit.prevent="sendText"
+          >
+            <label for="senior-chat-text" class="sr-only">궁금한 내용 입력</label>
+            <input
+              id="senior-chat-text"
+              v-model="typedText"
+              type="text"
+              inputmode="text"
+              autocomplete="off"
+              placeholder="이 안에 글로 물어보세요"
+              :disabled="disabled"
+            />
+            <button type="submit" :disabled="disabled || !typedText.trim()">보내기</button>
+          </form>
         </div>
 
         <div v-if="!startError" class="bottom" :class="{ confirm: isConfirm }">
@@ -166,9 +149,9 @@ async function sendText() {
               <BigButton v-for="c in session.choices" :key="c.id" kind="secondary" :disabled="disabled" @click="conv.pickChoice(c.id)">{{ c.label }}</BigButton>
             </div>
 
-            <div class="buttons" :class="{ two: isConfirm }">
+            <div v-if="consultationButtons.length" class="buttons" :class="{ two: isConfirm }">
               <BigButton
-                v-for="b in session.mainButtons"
+                v-for="b in consultationButtons"
                 :key="b.id"
                 :kind="b.kind || 'secondary'"
                 :size="isConfirm ? 'xl' : 'lg'"
@@ -179,23 +162,8 @@ async function sendText() {
               </BigButton>
             </div>
 
-            <!-- 글 입력은 보조 수단이라 맨 아래 -->
-            <form class="text-composer" aria-label="글로 대화하기" @submit.prevent="sendText">
-              <label for="senior-chat-text" class="sr-only">궁금한 내용 입력</label>
-              <input
-                id="senior-chat-text"
-                v-model="typedText"
-                type="text"
-                inputmode="text"
-                autocomplete="off"
-                placeholder="여기에 글로 물어보세요"
-                :disabled="disabled"
-              />
-              <button type="submit" :disabled="disabled || !typedText.trim()">보내기</button>
-            </form>
           </template>
         </div>
-        </template>
       </div>
     </ToneFrame>
   </SeniorShell>
@@ -209,87 +177,25 @@ async function sendText() {
   min-height: 0;
 }
 
-.counter-empty {
+.conversation-panel {
   flex: 1;
+  min-height: 250px;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
-  padding: 32px 22px;
-  text-align: center;
-}
-
-.counter-empty .ce-emoji {
-  font-size: 56px;
-  line-height: 1;
-  margin: 0;
-}
-
-.counter-empty .ce-title {
-  margin: 0;
-  font-size: var(--senior-font-lg);
-  font-weight: 900;
-  color: var(--text);
-  word-break: keep-all;
-}
-
-.counter-empty .ce-sub {
-  margin: 0 0 6px;
-  font-size: var(--senior-font);
-  font-weight: 700;
-  color: var(--text);
-  word-break: keep-all;
-}
-
-.counter-empty > :deep(.big-btn) {
-  width: 100%;
-  max-width: 420px;
-}
-
-.items-strip {
-  display: flex;
-  gap: 6px;
-  padding: 10px 12px 4px;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
-.chip {
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  padding: 6px 10px 6px 6px;
-  font-size: var(--senior-font);
-  font-weight: 700;
-}
-
-.chip .n {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: var(--kb-yellow);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 900;
-}
-
-.chip :deep(.level-badge) {
-  font-size: 18px;
-  padding: 4px 8px;
+  margin: 8px 12px 0;
+  overflow: hidden;
+  border: 2px solid #d8d2c7;
+  border-radius: 20px;
+  background: #f8f7f3;
+  box-shadow: 0 4px 14px rgba(69, 58, 25, 0.07);
 }
 
 .messages {
   flex: 1;
   overflow-y: auto;
-  padding: 8px 14px 16px;
-  min-height: 160px;
-  max-height: calc(100vh - 420px);
+  padding: 8px 12px 14px;
+  min-height: 150px;
+  max-height: calc(100vh - 500px);
 }
 
 .hint {
@@ -361,6 +267,9 @@ async function sendText() {
   display: flex;
   gap: 8px;
   align-items: stretch;
+  padding: 10px;
+  border-top: 2px solid #ddd7cc;
+  background: #fff;
 }
 
 .text-composer input {
@@ -386,7 +295,7 @@ async function sendText() {
   border: 3px solid var(--kb-yellow-dark);
   border-radius: var(--radius);
   background: var(--kb-yellow);
-  color: #1b1b1b;
+  color: var(--primary-text);
   padding: 10px 16px;
   font-size: var(--senior-font);
   font-weight: 900;

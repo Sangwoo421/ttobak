@@ -44,9 +44,9 @@ const label = computed(() => {
   justify-content: center;
   gap: 12px;
   border-radius: 999px;
-  border: 4px solid #1b1b1b;
-  background: #1b1b1b;
-  color: #fff;
+  border: 4px solid #d4a300;
+  background: #fff;
+  color: #2b2620;
   font-size: 24px;
   font-weight: 900;
   transition: background 0.15s ease;
@@ -73,8 +73,9 @@ const label = computed(() => {
 }
 
 .mic-btn.processing {
-  background: #777;
-  border-color: #777;
+  background: #fff;
+  border-color: #9a9388;
+  color: #5f5a52;
 }
 
 .icon {

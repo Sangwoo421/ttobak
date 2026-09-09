@@ -5,6 +5,16 @@ import * as ai from '@/api/ai'
 import { won } from '@/utils/format'
 
 let msgSeq = 0
+const LATEST_SUMMARY_KEY = 'ttobak_latest_summary_id'
+
+function loadLatestSummaryId() {
+  try {
+    const id = Number(localStorage.getItem(LATEST_SUMMARY_KEY))
+    return Number.isInteger(id) && id > 0 ? id : null
+  } catch {
+    return null
+  }
+}
 
 /** ADD_REQUEST payload → "아들 김철수 님에게 300,000원 보내기" (필드가 없으면 순하게 줄인다) */
 function describeRequest(p = {}) {
@@ -27,7 +37,7 @@ export const useSessionStore = defineStore('session', {
     state: 'IDLE', // BRIEFING | LISTENING | EXPLAIN | OFFER_ADD_QUESTION | SLOT_* | CONFIRM | CLARIFY | SUMMARY | DONE | END
     startState: 'LISTENING', // 브리핑 재생이 끝난 뒤 올라갈 상태. 거래 한 건이 확인 불가면 OFFER_ADD_QUESTION
     tone: 'friendly', // friendly | confirm
-    messages: [], // { id, role: 'assistant'|'user'|'counter', text, tone, at }
+    messages: [], // { id, role: 'assistant'|'user', text, tone, at }
     counterItems: [], // 창구 목록에 담긴 항목 (ADD_REQUEST / ADD_QUESTION). 화면에서 사라지지 않는다
     buttons: [], // ui.buttons
     choices: [], // ui.choices (CLARIFY 일 때만)
@@ -40,6 +50,7 @@ export const useSessionStore = defineStore('session', {
     pending: false, // STT/턴 요청 진행 중
     error: null,
     turnCount: 0,
+    latest_summary_id: loadLatestSummaryId(), // 홈에서 최근 창구 요약서를 다시 열 때 사용
   }),
 
   getters: {
@@ -48,8 +59,7 @@ export const useSessionStore = defineStore('session', {
     hasSession: (s) => !!s.session_id,
     /** 지금까지 창구 목록에 담은 개수 */
     counterCount: (s) => s.counterItems.length,
-    /** 화면 하단에 그릴 버튼. STOP(대화 종료)도 이제 헤더가 아니라 여기 큰 버튼으로 나온다.
-     *  담긴 게 있으면 "창구 갈 일 정리" 버튼에 개수를 붙인다 (0개면 안 붙인다). */
+    /** 화면 하단에 그릴 서버 제공 버튼. 담긴 항목 수가 있으면 창구 정리 버튼에 표시한다. */
     mainButtons: (s) => {
       const n = s.counterItems.length
       return (s.buttons || []).map((b) => (b.id === 'GO_COUNTER' && n > 0 ? { ...b, label: `${b.label} (${n})` } : b))
@@ -59,8 +69,21 @@ export const useSessionStore = defineStore('session', {
   actions: {
     reset() {
       const silenceOverride = this.silenceOverride
+      const latestSummaryId = this.latest_summary_id
       this.$reset()
       this.silenceOverride = silenceOverride
+      this.latest_summary_id = latestSummaryId
+    },
+
+    rememberSummary(summary_id) {
+      const id = Number(summary_id)
+      if (!Number.isInteger(id) || id <= 0) return
+      this.latest_summary_id = id
+      try {
+        localStorage.setItem(LATEST_SUMMARY_KEY, String(id))
+      } catch {
+        /* 저장이 막혀도 현재 실행 중인 앱에서는 Pinia 값으로 다시 열 수 있다. */
+      }
     },
 
     pushMessage(role, text, tone = 'friendly') {
@@ -68,13 +91,13 @@ export const useSessionStore = defineStore('session', {
     },
 
     /** 턴이 ADD_REQUEST / ADD_QUESTION 을 주면 호출.
-     *  담긴 항목을 배열에 쌓고, 대화 흐름에는 사라지지 않는 카드(role='counter')를 남긴다.
+     *  담긴 항목을 배열에 쌓고, 대화 흐름에는 사라지지 않는 안내를 남긴다.
      *  서버 계약은 그대로다 — 이미 오는 action 을 화면용으로 옮겨 적을 뿐. */
     addCounterItem(action) {
       const isRequest = action?.type === 'ADD_REQUEST'
       const summary = isRequest ? describeRequest(action?.payload || {}) : describeQuestion(action?.payload || {})
       this.counterItems.push({ id: ++msgSeq, kind: isRequest ? 'request' : 'question', summary, at: Date.now() })
-      this.pushMessage('counter', `📋 창구 목록에 담았어요\n${summary}`)
+      this.pushMessage('assistant', `창구 목록에 담았어요\n${summary}`)
     },
 
     /** POST /ai/session/start */

@@ -66,7 +66,7 @@ function onMic() {
             <div v-for="it in session.briefing?.items || []" :key="it.ordinal" class="item-card">
               <div class="ord">{{ ordinalLabel(it.ordinal) }}</div>
               <div class="label">{{ it.short_label }}</div>
-              <LevelBadge :level="it.level" />
+              <LevelBadge class="status" :level="it.level" />
             </div>
           </div>
 
@@ -121,14 +121,14 @@ function onMic() {
 
 .item-card {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: 52px minmax(0, 1fr) 100px;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   background: var(--card);
   border-radius: var(--radius);
   padding: 16px;
   box-shadow: var(--shadow);
-  border-left: 8px solid var(--kb-yellow);
+  border-left: 8px solid #e1b52e;
 }
 
 .ord {
@@ -138,9 +138,18 @@ function onMic() {
 }
 
 .label {
+  min-width: 0;
   font-size: var(--senior-font);
   font-weight: 800;
+  line-height: 1.35;
   word-break: keep-all;
+}
+
+.status {
+  width: 100%;
+  box-sizing: border-box;
+  padding-inline: 6px;
+  text-align: center;
 }
 
 .small {
@@ -153,5 +162,17 @@ function onMic() {
   flex-direction: column;
   gap: 10px;
   padding-top: 8px;
+}
+
+@media (max-width: 360px) {
+  .item-card {
+    grid-template-columns: 48px minmax(0, 1fr);
+  }
+
+  .status {
+    grid-column: 2;
+    width: 100px;
+    justify-self: start;
+  }
 }
 </style>

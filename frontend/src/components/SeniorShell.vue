@@ -7,7 +7,7 @@ import { useConversation } from '@/composables/useConversation'
 //
 // 헤더에는 나가는 길 하나만 둔다. 예전에는 뒤로가기와 "그만"이 나란히 있었는데, 어르신
 // 입장에서는 둘 다 "이 화면에서 나가기"라 구분이 안 되고 policy §6 의 "한 화면에 버튼 3개
-// 이하"도 넘겼다. 대화를 끝내는 "그만"은 음성과 대화 중 큰 버튼으로 그대로 남아 있다.
+// 이하"도 넘겼다. 상담 화면의 "그만" 버튼도 제거해 뒤로가기만 종료 동작을 맡는다.
 defineProps({
   // 제목은 서비스 이름이 아니라 '지금 이 화면에서 뭘 하는지'를 말한다.
   title: { type: String, default: '물어보기' },
@@ -71,6 +71,16 @@ function holdEnd() {
 
 <style scoped>
 .shell {
+  --kb-yellow: #fff;
+  --kb-yellow-dark: #d4a300;
+  --kb-yellow-soft: #f1efe9;
+  --primary: #fff;
+  --primary-text: #2b2620;
+  --confirm-bg: #f6f4ed;
+  --confirm-border: #5f543e;
+  --confirm-text: #2b2620;
+  --warn-bg: #efede7;
+  --warn: #665c4c;
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -82,7 +92,8 @@ function holdEnd() {
   align-items: center;
   gap: 8px;
   padding: 10px 12px;
-  background: var(--kb-yellow);
+  background: #fff;
+  border-bottom: 3px solid #ffbc00;
   position: sticky;
   top: 0;
   z-index: 5;
@@ -96,9 +107,9 @@ function holdEnd() {
   align-items: center;
   justify-content: center;
   border-radius: 14px;
-  border: 2px solid rgba(0, 0, 0, 0.28);
-  background: rgba(255, 255, 255, 0.85);
-  color: #1b1b1b;
+  border: 2px solid #c8c0b1;
+  background: #fff;
+  color: #2b2620;
   padding: 0;
   cursor: pointer;
 }
@@ -123,7 +134,7 @@ function holdEnd() {
   margin: 0;
   font-size: 24px;
   font-weight: 900;
-  color: #1b1b1b;
+  color: #2b2620;
   line-height: 1.25;
   /* "들어오고 나 / 간 돈" 처럼 단어 중간에서 깨지지 않게 어절 단위로만 접는다 */
   word-break: keep-all;
@@ -144,8 +155,9 @@ function holdEnd() {
   left: 50%;
   bottom: 120px;
   transform: translateX(-50%);
-  background: #222;
-  color: #fff;
+  background: #fff;
+  color: #2b2620;
+  border: 3px solid #d4a300;
   padding: 14px 22px;
   border-radius: 999px;
   font-size: 22px;

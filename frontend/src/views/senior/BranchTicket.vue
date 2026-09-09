@@ -62,7 +62,7 @@ async function cancel() {
 }
 
 function openCounterChat() {
-  router.push({ path: '/senior/chat', query: { start: 'true', counter: 'true' } })
+  router.push({ path: '/senior/chat', query: { start: 'true' } })
 }
 
 onMounted(load)

@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import { useConversation } from '@/composables/useConversation'
 import { USE_MOCK } from '@/api/http'
 
-// 숨겨진 개발 패널 (⚙). 시연 보험 + 측정용.
+// 숨겨진 개발 패널. 시연 보험 + 측정용.
 //  (a) 녹음 클립 입력 모드: 마이크 대신 로컬 오디오 파일을 /ai/stt 로 보낸다
 //  (b) 텍스트 턴: 타이핑한 문장을 /ai/turn 으로 보낸다
 //  (c) debug 보기: 마지막 턴의 debug (intent, matched, score, decision, path)
@@ -74,14 +74,14 @@ function setSilence(v) {
 
 <style scoped>
 .dev-panel {
-  background: #1f1f1f;
-  color: #eee;
+  background: #fff;
+  color: #2b2620;
   font-size: 13px;
   padding: 10px 12px;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  border-bottom: 3px solid var(--kb-yellow);
+  border-bottom: 3px solid #d4a300;
 }
 
 .row {
@@ -97,7 +97,7 @@ function setSilence(v) {
 
 .lbl {
   width: 64px;
-  color: #aaa;
+  color: #6b6458;
   flex: none;
 }
 
@@ -114,7 +114,7 @@ function setSilence(v) {
 
 .mono {
   font-family: ui-monospace, Consolas, monospace;
-  color: #bbb;
+  color: #6b6458;
   font-size: 12px;
 }
 
@@ -128,13 +128,13 @@ input[type='text'] {
   font-size: 14px;
   padding: 6px 8px;
   border-radius: 6px;
-  border: 1px solid #555;
-  background: #111;
-  color: #fff;
+  border: 1px solid #bcb5aa;
+  background: #fff;
+  color: #2b2620;
 }
 
 input[type='file'] {
-  color: #ccc;
+  color: #4f493f;
   font-size: 12px;
   max-width: 100%;
 }
@@ -144,24 +144,24 @@ input[type='file'] {
   font-size: 14px;
   padding: 4px 6px;
   border-radius: 6px;
-  border: 1px solid #555;
-  background: #111;
-  color: #fff;
+  border: 1px solid #bcb5aa;
+  background: #fff;
+  color: #2b2620;
 }
 
 button {
   font-size: 13px;
   padding: 6px 10px;
   border-radius: 6px;
-  border: 1px solid #666;
-  background: #333;
-  color: #fff;
+  border: 1px solid #8f887d;
+  background: #fff;
+  color: #2b2620;
 }
 
 button.on {
-  background: var(--kb-yellow);
-  color: #111;
-  border-color: var(--kb-yellow);
+  background: #fff;
+  color: #2b2620;
+  border: 2px solid #d4a300;
 }
 
 button:disabled {
@@ -176,8 +176,9 @@ button:disabled {
 
 .debug {
   margin: 0;
-  background: #000;
-  color: #9fe870;
+  background: #f4f2ed;
+  color: #315d38;
+  border: 1px solid #d9d3c7;
   padding: 8px;
   border-radius: 6px;
   max-height: 260px;
