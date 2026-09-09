@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import PhoneFrame from '@/components/PhoneFrame.vue'
 
-// /mock, /senior 는 폰 프레임(최대 430px) 안에, /staff 는 전체 폭.
+// 시연 화면은 모두 폰 프레임(최대 430px) 안에 표시한다.
 const route = useRoute()
 const isPhone = computed(() => route.meta.frame === 'phone')
 </script>

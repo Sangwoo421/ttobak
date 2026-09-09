@@ -63,7 +63,16 @@ function outOfScope(label) {
 
     <header class="kb-top">
       <span class="logo"><span class="star">★</span>KB스타뱅킹</span>
-      <button type="button" class="senior-toggle" @click="appMode.enable()">👵 어르신 모드</button>
+      <button type="button" class="senior-toggle" @click="appMode.enable()">
+        <svg class="senior-toggle-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="16" cy="4" r="1" />
+          <path d="m18 19 1-7-6 1" />
+          <path d="m5 8 3-3 5.5 3-2.36 3.5" />
+          <path d="M4.24 14.5a5 5 0 0 0 6.88 6" />
+          <path d="M13.76 17.5a5 5 0 0 0-6.88-6" />
+        </svg>
+        <span>어르신 모드</span>
+      </button>
     </header>
 
     <section class="balance">
@@ -100,8 +109,6 @@ function outOfScope(label) {
       <button v-for="(t, i) in tabs" :key="t" type="button" :class="{ on: i === 0 }"
               @click="i === 0 ? null : outOfScope(t)">{{ t }}</button>
     </nav>
-
-    <router-link class="staff-link" to="/staff">직원 화면 →</router-link>
 
     <transition name="fade">
       <p v-if="notice" class="scope-notice">{{ notice }}</p>
@@ -355,26 +362,32 @@ function outOfScope(label) {
   color: var(--kb-brown);
 }
 
-.staff-link {
-  align-self: flex-end;
-  margin: 0 12px 6px;
-  font-size: 11px;
-  color: #aaa;
-  text-decoration: none;
-}
 /* 어르신 모드 진입. 기획서의 "기존 앱 안의 부가 모드" 전제가 화면에서 보여야 한다. */
 .senior-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   min-height: 40px;
   padding: 0 14px;
-  border: 2px solid #6b4e00;
-  border-radius: 999px;
-  background: #fff8e1;
+  border: 0;
+  border-radius: 12px;
+  background: var(--kb-yellow-soft);
+  box-shadow: var(--shadow);
   font-size: 15px;
   font-weight: 800;
-  color: #6b4e00;
+  color: var(--kb-brown);
   cursor: pointer;
 }
-.senior-toggle:active { background: #ffe9a8; }
+.senior-toggle-icon {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.senior-toggle:active { background: #ffe5a3; }
 
 /* 만들지 않은 기존 앱 기능을 눌렀을 때. 침묵보다 경계를 밝히는 편이 낫다. */
 .scope-notice {
