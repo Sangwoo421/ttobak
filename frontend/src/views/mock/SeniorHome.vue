@@ -2,7 +2,8 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { won } from '@/utils/format'
-import { getTransactions } from '@/api/backend'
+import { getTransactions, getBriefing } from '@/api/backend'
+import { unheardBadge, unheardCountFromBriefing } from '@/utils/notifications'
 import { tts } from '@/api/ai'
 import { seniorErrorMessage } from '@/api/http'
 import { useAudioPlayer } from '@/composables/useAudioPlayer'
@@ -30,6 +31,7 @@ const loading = ref(true)
 const error = ref('')
 const notice = ref('')
 const reading = ref(false)
+const unheard = ref(0)
 
 const userName = computed(() => auth.userName || '고객')
 // 이름 첫 글자는 성이라 구분이 안 된다. "김영자" → "영" 처럼 이름의 첫 글자를 쓴다.
@@ -37,9 +39,16 @@ const initial = computed(() => {
   const n = userName.value.trim()
   return n.length >= 2 ? n[1] : n[0] || ''
 })
-const newCount = computed(() => items.value.length)
+// 뱃지와 부제는 미청취 알림 개수(countUnheard)만 본다. 홈 목록(items)의 길이가 아니다.
+const briefingBadge = computed(() => unheardBadge(unheard.value))
 
-onMounted(async () => {
+onMounted(() => {
+  loadTransactions()
+  loadUnheard()
+})
+
+// 홈 목록: 청취 여부와 무관한 최근 거래. 화면 본문이라 실패하면 에러를 띄운다.
+async function loadTransactions() {
   try {
     items.value = await getTransactions(1, 6)
   } catch (e) {
@@ -47,7 +56,16 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
-})
+}
+
+// 뱃지용 미청취 개수. 못 받으면 0 으로 둬서 뱃지를 숨긴다 (틀린 숫자보다 안 보이는 게 낫다).
+async function loadUnheard() {
+  try {
+    unheard.value = unheardCountFromBriefing(await getBriefing(1))
+  } catch {
+    unheard.value = 0
+  }
+}
 
 function go(path, query) {
   player.unlock() // 사용자 제스처 안에서 오디오를 깨워 둬야 이후 자동재생이 막히지 않는다
@@ -138,8 +156,8 @@ function when(tx) {
           <span class="s-icon accent">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5z" /><path d="M15.5 8.5a5 5 0 0 1 0 7" /><path d="M18.5 5.5a9 9 0 0 1 0 13" /></svg>
           </span>
-          <span class="txt"><b>들어오고 나간 돈 듣기</b><small>{{ newCount ? `새로 온 알림 ${newCount}건` : '최근 것부터 읽어드려요' }}</small></span>
-          <span v-if="newCount" class="s-count num">{{ newCount }}</span>
+          <span class="txt"><b>들어오고 나간 돈 듣기</b><small>{{ briefingBadge.subtitle }}</small></span>
+          <span v-if="briefingBadge.showBadge" class="s-count num">{{ briefingBadge.count }}</span>
         </button>
 
         <button type="button" class="s-act" @click="openChat">

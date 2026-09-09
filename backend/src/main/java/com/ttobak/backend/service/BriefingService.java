@@ -46,7 +46,8 @@ public class BriefingService {
             Classification c = classification.classify(tx, counterparties);
             items.add(new BriefingItem(ordinal++, row.getNotificationId(), tx, c));
         }
-        return new BriefingResponse(user.getId(), user.getName(), items, Math.max(0, unheardTotal - items.size()));
+        return new BriefingResponse(user.getId(), user.getName(), items,
+                Math.max(0, unheardTotal - items.size()), unheardTotal);
     }
 
     public void markHeard(long notificationId) {
