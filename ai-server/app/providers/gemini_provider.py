@@ -162,8 +162,14 @@ class GeminiTTSProvider:
 
 
 class GeminiLLMProvider:
+    # 의도 분류·동점 선택·설명은 모두 짧은 JSON 한 줄이다. 기본 설정의 "생각(thinking)" 단계가
+    # 켜져 있으면 "으음 그 저기" 한마디에 10초가 걸려 무대에서 침묵이 생긴다(실측 9.9초).
+    # 생각 예산을 0 으로, 응답 시간 상한을 10초(API 허용 최소)로 둔다. 넘기면 SafeLLM 이 UNKNOWN 으로 받아
+    # 규칙 경로(선택지 버튼)로 내려가므로 대화는 끊기지 않는다.
+    _TIMEOUT_MS = 10000
+
     def __init__(self, api_key: str, model: str) -> None:
-        self._client = genai.Client(api_key=api_key)
+        self._client = genai.Client(api_key=api_key, http_options=types.HttpOptions(timeout=self._TIMEOUT_MS))
         self._model = model
 
     def _json(self, system: str, user: str) -> dict:
@@ -174,6 +180,8 @@ class GeminiLLMProvider:
                 system_instruction=system,
                 temperature=0.0,
                 response_mime_type="application/json",
+                max_output_tokens=120,
+                thinking_config=types.ThinkingConfig(thinking_budget=0),
             ),
         )
         return json.loads(resp.text or "{}")
