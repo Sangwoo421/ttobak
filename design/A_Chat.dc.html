@@ -1,0 +1,86 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;500;600;700;800;900&display=swap');
+    body { margin: 0; font-family: 'Gothic A1', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; }
+    a { color: #8a6a00; } a:hover { color: #5e4800; }
+  </style>
+</helmet>
+
+<!-- A안 다듬음 · 대화
+     바뀐 것: 헤더를 흰 바탕 + 노란 밑줄로 가볍게, 말풍선 꼬리와 그림자로 누가 말하는지 분명히,
+     마이크를 하단 고정 영역의 주인공으로, 듣는 상태를 색으로 즉시 알 수 있게. -->
+<div style="width: 460px; min-height: 900px; background: #f7f5f0; display: flex; flex-direction: column;">
+
+  <!-- 헤더 -->
+  <div style="background: #fff; border-bottom: 3px solid #ffbc00; padding: 12px 16px; display: flex; align-items: center; gap: 12px; box-shadow: 0 2px 8px rgba(120,90,20,0.06);">
+    <button style="flex: none; width: 52px; height: 52px; border-radius: 15px; border: 2px solid #e2ddd0; background: #fff; display: flex; align-items: center; justify-content: center;">
+      <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#3d3629" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5 8 12l7 7"/></svg>
+    </button>
+    <h1 style="flex: 1; margin: 0; font-size: 24px; font-weight: 900; color: #1b1b1b; letter-spacing: -0.4px;">물어보기</h1>
+    <span style="flex: none; display: inline-flex; align-items: center; gap: 6px; background: #fff0c2; color: #6b4e00; font-size: 14px; font-weight: 800; padding: 6px 12px; border-radius: 999px;">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#6b4e00" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V10l7-5 7 5v11"/></svg>
+      창구 목록 1
+    </span>
+  </div>
+
+  <!-- 대화 -->
+  <div style="flex: 1; padding: 18px 14px 12px; display: flex; flex-direction: column; gap: 16px;">
+
+    <div style="display: flex; gap: 10px; align-items: flex-end;">
+      <span style="flex: none; width: 40px; height: 40px; border-radius: 50%; background: #ffbc00; color: #3d2e00; font-size: 16px; font-weight: 900; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(200,150,0,0.3);">또</span>
+      <div style="background: #fff; border-radius: 6px 22px 22px 22px; padding: 15px 17px; box-shadow: 0 3px 12px rgba(120,90,20,0.10);">
+        <p style="margin: 0; font-size: 22px; line-height: 1.6; color: #1b1b1b; letter-spacing: -0.2px;">어제 오후에 아드님 김철수 님이 <b>300,000원</b> 보내셨어요. 등록된 아들 통장이에요.</p>
+      </div>
+    </div>
+
+    <div style="display: flex; justify-content: flex-end;">
+      <div style="background: #ffe9a3; border-radius: 22px 6px 22px 22px; padding: 13px 17px; max-width: 78%; box-shadow: 0 2px 8px rgba(180,140,0,0.16);">
+        <p style="margin: 0; font-size: 21px; line-height: 1.5; color: #3d2e00;">세 번째 그 정보통신인가 그건 뭐야</p>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 10px; align-items: flex-end;">
+      <span style="flex: none; width: 40px; height: 40px; border-radius: 50%; background: #ffbc00; color: #3d2e00; font-size: 16px; font-weight: 900; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(200,150,0,0.3);">또</span>
+      <div style="background: #fff; border-radius: 6px 22px 22px 22px; padding: 15px 17px; box-shadow: 0 3px 12px rgba(120,90,20,0.10); border-left: 5px solid #c5221f;">
+        <p style="margin: 0; font-size: 22px; line-height: 1.6; color: #1b1b1b; letter-spacing: -0.2px;">통장에는 '대한정보통신'이라고만 적혀 있어서, 무슨 돈인지는 제가 알 수 없어요.</p>
+        <p style="margin: 12px 0 0; font-size: 22px; line-height: 1.6; font-weight: 800; color: #1b1b1b;">창구에서 여쭤볼 목록에 적어둘까요?</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 하단 -->
+  <div style="background: #fff; border-top: 1px solid #eae5d8; padding: 16px 14px 20px; display: flex; flex-direction: column; gap: 13px; box-shadow: 0 -4px 16px rgba(120,90,20,0.07);">
+
+    <div style="display: flex; align-items: center; gap: 9px; align-self: center; background: #e6f4ea; color: #17703a; font-size: 18px; font-weight: 800; padding: 8px 20px; border-radius: 999px;">
+      <span style="width: 11px; height: 11px; border-radius: 50%; background: #1e8e3e;"></span>
+      말씀하세요
+    </div>
+
+    <button style="width: 100%; min-height: 88px; display: flex; align-items: center; justify-content: center; gap: 13px; border-radius: 999px; border: none; background: linear-gradient(180deg, #ffc933, #f5b000); color: #241a00; font-size: 25px; font-weight: 900; letter-spacing: -0.4px; box-shadow: 0 5px 16px rgba(200,150,0,0.4);">
+      <svg viewBox="0 0 24 24" width="31" height="31" fill="none" stroke="#241a00" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a3 3 0 0 1 3 3v5a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3z"/><path d="M19 11a7 7 0 0 1-14 0"/><path d="M12 18v3"/></svg>
+      눌러서 말하기
+    </button>
+
+    <div style="display: flex; gap: 10px;">
+      <button style="flex: 1; min-height: 74px; border-radius: 18px; border: none; background: #1e8e3e; color: #fff; font-size: 21px; font-weight: 900; box-shadow: 0 3px 10px rgba(30,142,62,0.3);">네, 적어주세요</button>
+      <button style="flex: 1; min-height: 74px; border-radius: 18px; border: 2px solid #ded8ca; background: #fff; color: #4a4438; font-size: 21px; font-weight: 900;">아니요</button>
+    </div>
+
+    <div style="display: flex; gap: 8px;">
+      <input placeholder="글로 물어보세요" style="flex: 1; min-height: 54px; border: 2px solid #e2ddd0; border-radius: 15px; padding: 0 15px; font-size: 17px; color: #1b1b1b; background: #faf9f5;">
+      <button style="flex: none; min-height: 54px; padding: 0 19px; border-radius: 15px; border: none; background: #fff0c2; color: #6b4e00; font-size: 17px; font-weight: 800;">보내기</button>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

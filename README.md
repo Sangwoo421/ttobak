@@ -51,6 +51,7 @@ cd frontend && npm install && npm run dev
 | [docs/03-demo-scenario.md](docs/03-demo-scenario.md) | 시연 대본 (개발의 북극성) |
 | [docs/04-roles-and-tasks.md](docs/04-roles-and-tasks.md) | 5명 역할별 체크리스트 + Claude Code 프롬프트 |
 | [docs/05-timeline.md](docs/05-timeline.md) | 2박3일 시간표·체크포인트 |
+| **[docs/08-talking-points.md](docs/08-talking-points.md)** | **발표에서 할 말 — 설계 결정과 그 이유, 예상 Q&A** |
 | [docs/06-presentation.md](docs/06-presentation.md) | PPT 구성·예상 Q&A |
 | [docs/contracts/](docs/contracts/) | API·상태 머신·분류 규칙·말투 정책·시드 (단일 진실) |
 | [CLAUDE.md](CLAUDE.md) | AI 코딩 공통 규칙 |
