@@ -19,7 +19,7 @@ from app.core.candidates import Candidate, Scored, decide, score_candidates
 from app.core.intents import YES_NO_STATES, classify as classify_rule, llm_candidate_intents
 from app.core.session_store import Session
 
-LISTEN_STATES = {"LISTENING", "OFFER_ADD_QUESTION", "SLOT_RECIPIENT", "SLOT_AMOUNT", "CONFIRM"}
+LISTEN_STATES = {"LISTENING", "OFFER_ADD_QUESTION", "SLOT_RECIPIENT", "SLOT_AMOUNT", "CONFIRM", "ASK_FREE"}
 TX_INTENTS = {"ASK_ABOUT_TX", "ASK_WHO", "ASK_AMOUNT", "MUTE_ITEM"}
 
 
@@ -32,6 +32,7 @@ BUTTONS: dict[str, list[dict]] = {
     "EXPLAIN": [_b("REPEAT", "다시 들려주세요"), _b("GO_COUNTER", "창구 갈 일 정리"), _b("STOP", "대화 종료", "danger")],
     "OFFER_ADD_QUESTION": [_b("YES", "네, 적어주세요", "primary"), _b("NO", "아니요")],
     "SLOT_RECIPIENT": [_b("NO", "아니에요")],
+    "ASK_FREE": [_b("NO", "아니요, 괜찮아요")],
     "SLOT_AMOUNT": [_b("NO", "아니에요")],
     "CONFIRM": [_b("YES", "맞아요", "primary"), _b("NO", "아니에요", "danger")],
     "CLARIFY": [_b("REPEAT", "다시 들려주세요"), _b("STOP", "대화 종료", "danger")],
@@ -115,7 +116,9 @@ def _on_button(session: Session, ctx: TurnContext, b: str, r: TurnResult) -> Non
     elif b == "GO_COUNTER":
         _do_summary(session, ctx, r)
     elif b in ("YES", "NO"):
-        if session.state in YES_NO_STATES:
+        if session.state == "ASK_FREE":
+            r.assistant_text, r.state = T.question_skipped(), "LISTENING"
+        elif session.state in YES_NO_STATES:
             _dispatch_intent(session, ctx, b, None, r)
         else:
             r.intent = "UNKNOWN"
@@ -167,6 +170,18 @@ def _on_text(session: Session, ctx: TurnContext, text: str, r: TurnResult) -> No
         _clarify_intents(session, r)
         return
 
+    # ASK_FREE: 무엇을 물어볼지 받는 중. "그만/아니요"가 아니면 들은 말을 그대로 담는다.
+    if session.state == "ASK_FREE":
+        intent, conf, path = classify_rule(text, session.state, session.tx_name_forms())
+        r.path = list(path)
+        if intent in ("STOP", "NO"):
+            r.intent, r.intent_confidence = intent, conf
+            r.assistant_text, r.state = T.question_skipped(), "LISTENING"
+            return
+        r.intent, r.intent_confidence = "ASK_FREE", 1.0
+        _ask_free_answer(session, text, r)
+        return
+
     # SLOT_AMOUNT: any utterance is first tried as an amount.
     if session.state == "SLOT_AMOUNT" and parse_amount(text) is not None:
         r.intent, r.intent_confidence, r.path = "AMOUNT", 1.0, ["rule", "amount_parser"]
@@ -188,6 +203,27 @@ def _on_text(session: Session, ctx: TurnContext, text: str, r: TurnResult) -> No
             r.path.append("amount_parser")
             _slot_amount_text(session, text, r)
             return
+        if session.mode == "baseline":
+            # 비교 기준에는 LLM 보정도 자모 구제도 없다. 규칙이 못 잡으면 거기서 실패다.
+            r.intent, r.intent_confidence = "UNKNOWN", 0.0
+            _clarify_intents(session, r)
+            return
+
+        # 레이어 3겹의 마지막: 의도 규칙이 못 잡았어도 화면에 떠 있는 거래와 대조해 본다.
+        #
+        # "그 정보통시인가 뭐시기" 처럼 발음이 뭉개지면 의도 낱말(뭐야/무슨)도 상대명도
+        # 글자 그대로는 안 맞는다. 그런데 자모로 재면 '정보통신'과 0.91 이다. 여기서 구제하지
+        # 않으면 "인식이 깨져도 하려던 일에 도달하게 한다"는 레이어의 목적이 무너진다.
+        #
+        # 거래를 짚은 것으로만 본다(읽어주기). 수취인만 맞았다고 이체 요청으로 넘기지는 않는다 —
+        # 돈이 움직이는 쪽은 낱말이 분명할 때만 들어간다.
+        if session.state == "LISTENING":
+            rescued = _rescue_by_candidates(session, ctx, text, r)
+            if rescued:
+                r.intent, r.intent_confidence = "ASK_ABOUT_TX", 1.0
+                r.path.append("jamo_rescue")
+                _apply_tx_intent(session, ctx, "ASK_ABOUT_TX", rescued, text, r)
+                return
         (intent, conf), err = ctx.llm.classify_intent(text, llm_candidate_intents(session.state))
         r.llm_used = True
         r.path.append("llm")
@@ -235,9 +271,36 @@ def _dispatch_intent(session: Session, ctx: TurnContext, intent: str, text: str 
         _tx_intent(session, ctx, intent, text, r, free_question)
     elif intent == "REQUEST_TRANSFER":
         _request_transfer(session, ctx, text, r)
+    elif intent == "ASK_UNSUPPORTED":
+        _ask_unsupported(session, text, r)
     else:
         r.intent = "UNKNOWN"
         _clarify_intents(session, r)
+
+
+def _ask_unsupported(session: Session, text: str | None, r: TurnResult) -> None:
+    """앱이 답할 수 없는 은행 질문. 지어내지 않고 창구로 넘긴다.
+
+    "잘 못 들었어요"로 처리하면 안 된다. 인식은 됐고, 우리가 모르는 것뿐이다. 어르신 입장에서
+    말은 통했는데 앱이 못 알아들었다고 하면 다시 물어볼 방법이 없어 대화가 막다른 길이 된다.
+    확인 불가 거래를 다루는 방식과 같다: 모른다고 밝히고 창구 목록에 담을지 물어본다.
+    """
+    asked = (text or "").strip()
+    if not asked:
+        # CLARIFY 선택지로 들어온 경우. 담을 내용이 없으니 무엇을 물어볼지 먼저 듣는다.
+        r.assistant_text, r.state = T.ask_free(), "ASK_FREE"
+        return
+    session.pending_question = {"transaction_id": None, "text": T.counter_question_from(asked)}
+    r.assistant_text = T.cannot_answer()
+    r.state = "OFFER_ADD_QUESTION"
+
+
+def _ask_free_answer(session: Session, text: str, r: TurnResult) -> None:
+    """ASK_FREE: 들은 말을 그대로 창구 목록에 담는다. 이미 담겠다고 한 상태라 다시 묻지 않는다."""
+    q = {"transaction_id": None, "text": T.counter_question_from(text)}
+    session.questions.append(q)
+    r.actions.append({"type": "ADD_QUESTION", "payload": q})
+    r.assistant_text, r.state = T.question_added(), "LISTENING"
 
 
 # ============================================================= globals ====
@@ -329,10 +392,54 @@ def _cp_choices(session: Session, scored: list[Scored] | None = None) -> list[di
 
 
 # ===================================================== transaction asks ====
+def _rescue_by_candidates(session: Session, ctx: TurnContext, text: str, r: TurnResult) -> dict | None:
+    """의도 규칙이 실패했을 때 화면의 거래와 자모로 대조해 본다. 확실할 때만 구제한다.
+
+    되묻기(ASK_AGAIN) 구간은 쓰지 않는다. 의도조차 불분명한 발화에서 애매한 후보를 되물으면
+    엉뚱한 거래를 확인시키게 된다. 확실히 맞을 때만 집고, 아니면 원래대로 CLARIFY 로 간다.
+    """
+    cands = session.tx_candidates()
+    if not cands:
+        return None
+    scored = score_candidates(text, cands)
+    decision, mid, score = decide(scored, ctx.settings.match_accept, ctx.settings.match_ask,
+                                  ctx.settings.match_tie_gap)
+    if decision != "ACCEPT" or not mid:
+        return None
+    r.candidates = [x.to_dict() for x in scored]
+    r.decision, r.matched_candidate, r.match_score = "ACCEPT", mid, round(score, 2)
+    return session.item_by_tx(int(mid.split(":")[1]))
+
+
+def _resolve_baseline(text: str, cands: list[Candidate], r: TurnResult
+                      ) -> tuple[str, str | None, float | None, list[Scored]]:
+    """레이어를 걷어낸 비교 기준 (mode=baseline). 측정 전용이며 시연 경로가 아니다.
+
+    보통의 음성 서비스가 하는 것: 전사 텍스트에 후보 표면형이 그대로 들어 있으면 실행하고,
+    없으면 "다시 말씀해 주세요". 되묻기도 후보 버튼도 없다.
+
+    레이어(자모 유사도 + 신뢰도 게이팅)는 여기서 쓰지 않는다. baseline 에서도 같이 돌면
+    두 경로의 차이가 사라져 tools/measure 의 전후 비교가 무의미해진다.
+    """
+    compact = re.sub(r"\s+", "", text)
+    hits = [c for c in cands if any(f and re.sub(r"\s+", "", f) in compact for f in c.surface_forms)]
+    scored = [Scored(c.id, c.label, 1.0 if c in hits else 0.0) for c in cands]
+    r.candidates = [s.to_dict() for s in scored]
+    r.path.append("substring")
+    if len(hits) == 1:
+        r.decision, r.matched_candidate, r.match_score = "ACCEPT", hits[0].id, 1.0
+        return "ACCEPT", hits[0].id, 1.0, scored
+    # 0개(못 찾음)나 2개 이상(가릴 방법 없음) 모두 실패로 끝난다
+    r.decision, r.matched_candidate, r.match_score = "BUTTON", None, None
+    return "BUTTON", None, None, scored
+
+
 def _resolve(session: Session, ctx: TurnContext, text: str | None, cands: list[Candidate], r: TurnResult
              ) -> tuple[str, str | None, float | None, list[Scored]]:
     if not text or not cands:
         return "BUTTON", None, None, []
+    if session.mode == "baseline":
+        return _resolve_baseline(text, cands, r)
     scored = score_candidates(text, cands)
     r.candidates = [s.to_dict() for s in scored]
     r.path.append("jamo")

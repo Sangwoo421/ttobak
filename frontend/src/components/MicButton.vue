@@ -6,10 +6,15 @@ const props = defineProps({
   status: { type: String, default: 'idle' }, // idle | listening | processing | speaking
   disabled: { type: Boolean, default: false },
   size: { type: String, default: 'lg' }, // lg | md
+  // 쉬고 있을 때의 문구를 상황에 맞게 바꾼다. 못 알아들은 뒤라면 "다시 말하기"가 맞다.
+  idleLabel: { type: String, default: '' },
 })
 defineEmits(['click'])
 
-const label = computed(() => ({ idle: '눌러서 말하기', listening: '다 말했어요', processing: '잠깐만요', speaking: '눌러서 말하기' })[props.status] || '말하기')
+const label = computed(() => {
+  if (props.status === 'idle' || props.status === 'speaking') return props.idleLabel || '눌러서 말하기'
+  return { listening: '다 말했어요', processing: '잠깐만요' }[props.status] || '말하기'
+})
 </script>
 
 <template>

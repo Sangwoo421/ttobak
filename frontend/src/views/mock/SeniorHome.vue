@@ -3,7 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { won } from '@/utils/format'
 import { getTransactions } from '@/api/backend'
-import { errorMessage } from '@/api/http'
+import { seniorErrorMessage } from '@/api/http'
 import { useAudioPlayer } from '@/composables/useAudioPlayer'
 import LevelBadge from '@/components/LevelBadge.vue'
 
@@ -26,7 +26,7 @@ onMounted(async () => {
   try {
     items.value = await getTransactions(1, 6)
   } catch (e) {
-    error.value = errorMessage(e)
+    error.value = seniorErrorMessage(e)
   } finally {
     loading.value = false
   }

@@ -9,7 +9,7 @@ import MicStatus from '@/components/MicStatus.vue'
 import SpeechBubble from '@/components/SpeechBubble.vue'
 import LevelBadge from '@/components/LevelBadge.vue'
 import { useConversation } from '@/composables/useConversation'
-import { errorMessage } from '@/api/http'
+import { seniorErrorMessage } from '@/api/http'
 
 // 시연 3단계: 대화 화면. 말풍선 + 마이크 상태 + 큰 마이크 + ui.buttons(+ CLARIFY 면 choices).
 // tone=confirm 이면 ToneFrame 이 화면 전체를 바꾸고 버튼은 맞아요/아니에요만 크게.
@@ -29,7 +29,7 @@ const voiceGuide = computed(() => {
   if (conv.micStatus.value === 'listening') return '천천히 말씀하세요. 말씀을 마치면 자동으로 알아들어요.'
   if (conv.micStatus.value === 'processing') return '말씀하신 내용을 확인하고 있어요.'
   if (conv.micStatus.value === 'speaking') return '답변을 읽어드리고 있어요.'
-  if (session.state === 'CLARIFY') return '아래에서 하려던 일을 골라주세요.'
+  if (session.state === 'CLARIFY') return '다시 말씀하시거나, 아래에서 골라주세요.'
   if (isConfirm.value) return '내용이 맞는지 말하거나 큰 버튼으로 알려주세요.'
   return '마이크를 누르고 궁금한 내용을 말씀하세요.'
 })
@@ -50,7 +50,7 @@ async function startDirectChat({ transaction_id = null, suppressAutoListen = fal
     await conv.begin({ user_id: 1, transaction_id, playBriefing: !!transaction_id })
     await router.replace('/senior/chat')
   } catch (e) {
-    startError.value = errorMessage(e)
+    startError.value = seniorErrorMessage(e)
   } finally {
     if (suppressAutoListen) conv.autoListen.value = prevAutoListen
     starting.value = false
@@ -151,6 +151,17 @@ async function sendText() {
             <MicStatus :status="conv.micStatus.value" :level="recorder.level.value" />
             <p class="voice-guide">{{ voiceGuide }}</p>
 
+            <!-- 말하는 것이 이 서비스의 주 입력 수단이다. 스크롤을 내려야 보이면 안 된다.
+                 못 알아들었을 때(CLARIFY)도 숨기지 않는다 — 다시 말해 보는 게 가장 자연스러운
+                 복구인데, 선택지 버튼만 남기면 그 길이 막힌다. -->
+            <MicButton
+              :status="conv.micStatus.value"
+              :disabled="disabled"
+              :size="isConfirm ? 'md' : 'lg'"
+              :idle-label="session.state === 'CLARIFY' ? '다시 말하기' : ''"
+              @click="conv.toggleMic()"
+            />
+
             <div v-if="session.choices.length" class="choices">
               <BigButton v-for="c in session.choices" :key="c.id" kind="secondary" :disabled="disabled" @click="conv.pickChoice(c.id)">{{ c.label }}</BigButton>
             </div>
@@ -168,6 +179,7 @@ async function sendText() {
               </BigButton>
             </div>
 
+            <!-- 글 입력은 보조 수단이라 맨 아래 -->
             <form class="text-composer" aria-label="글로 대화하기" @submit.prevent="sendText">
               <label for="senior-chat-text" class="sr-only">궁금한 내용 입력</label>
               <input
@@ -181,14 +193,6 @@ async function sendText() {
               />
               <button type="submit" :disabled="disabled || !typedText.trim()">보내기</button>
             </form>
-
-            <MicButton
-              v-if="session.state !== 'CLARIFY'"
-              :status="conv.micStatus.value"
-              :disabled="disabled"
-              :size="isConfirm ? 'md' : 'lg'"
-              @click="conv.toggleMic()"
-            />
           </template>
         </div>
         </template>

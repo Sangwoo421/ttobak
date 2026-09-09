@@ -8,7 +8,7 @@ import SummaryCard from '@/components/SummaryCard.vue'
 import { getSummary, getSummaryStatus } from '@/api/backend'
 import { tts } from '@/api/ai'
 import { useConversation } from '@/composables/useConversation'
-import { errorMessage } from '@/api/http'
+import { seniorErrorMessage } from '@/api/http'
 import { statusLabel } from '@/utils/format'
 
 // 시연 4단계: 창구 요약서. GET /api/summaries/{id} + 3초마다 status 폴링.
@@ -35,7 +35,7 @@ async function load() {
   try {
     summary.value = await getSummary(route.params.id)
   } catch (e) {
-    error.value = errorMessage(e)
+    error.value = seniorErrorMessage(e)
   }
 }
 

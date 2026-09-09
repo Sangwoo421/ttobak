@@ -27,7 +27,20 @@ else
   echo "── TTS 캐시는 그대로 둔다 (지우려면 --with-audio) ──"
 fi
 
-mysql -u root -p ttobak <<'SQL'
+# 호스트에 mysql 클라이언트가 없는 PC 가 있어서 컨테이너 안에서 돌린다.
+# (-p 대화형 프롬프트는 비TTY 에서 죽는다. 시연용 로컬 계정이라 비밀번호를 인라인으로 둔다.)
+MYSQL_CONTAINER="${MYSQL_CONTAINER:-ttobak-mysql}"
+
+if docker exec "$MYSQL_CONTAINER" true 2>/dev/null; then
+  RUN_SQL() { docker exec -i "$MYSQL_CONTAINER" mysql -uttobak -pttobak --default-character-set=utf8mb4 ttobak 2>/dev/null; }
+elif command -v mysql >/dev/null 2>&1; then
+  RUN_SQL() { mysql -uttobak -pttobak --default-character-set=utf8mb4 ttobak; }
+else
+  echo "!! MySQL 에 닿을 수 없다. 컨테이너가 떠 있는지 확인:  docker start $MYSQL_CONTAINER"
+  exit 1
+fi
+
+RUN_SQL <<'SQL'
 DELETE FROM summary_items   WHERE summary_id >= 2;
 DELETE FROM counter_summaries WHERE id >= 2;
 UPDATE notifications SET heard_at = NULL, read_at = NULL WHERE id IN (1001, 1002, 1003);

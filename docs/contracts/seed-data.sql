@@ -142,19 +142,22 @@ INSERT INTO counterparties (id, user_id, name, relation, kind, bank_name, accoun
   (5, 1, '국민연금공단', '정기입금', 'INSTITUTION', NULL,         NULL,              '연금,국민연금',              '국민연금',        '연금');
 
 -- 거래: 최근순. 101~103 이 시연에서 읽어주는 3건.
+-- 시각은 "며칠 전 + 고정 시:분" 으로 박는다. NOW() 기준 상대 시간(-5시간 등)을 쓰면 리셋한
+-- 시각에 따라 "오늘 아침"이 "오늘 오후"로 바뀌어 시연 대본·PPT 와 어긋난다.
+-- 버킷: 새벽(~06) / 아침(06-12) / 오후(12-18) / 저녁(18~) — relative_time.py 와 같아야 한다.
 INSERT INTO transactions (id, account_id, type, amount, counterparty_name, memo, channel, occurred_at, counterparty_id) VALUES
-  (101, 1, 'IN',  300000, '김철수',        '김철수',          '이체',      DATE_SUB(NOW(), INTERVAL 1 DAY) + INTERVAL 0 SECOND, 1),
-  (102, 1, 'OUT',  42000, '한국전력공사',  '한전 전기요금',   '자동이체',  DATE_SUB(NOW(), INTERVAL 5 HOUR), 4),
-  (103, 1, 'OUT',  19000, '대한정보통신',  '대한정보통신',    '자동이체',  DATE_SUB(NOW(), INTERVAL 4 HOUR), NULL),
-  (104, 1, 'IN',  620000, '국민연금공단',  '국민연금',        '이체',      DATE_SUB(NOW(), INTERVAL 3 DAY), 5),
-  (105, 1, 'OUT',   3500, '수수료',        '타행이체수수료',  '수수료',    DATE_SUB(NOW(), INTERVAL 5 DAY), NULL),
-  (106, 1, 'IN',   50000, '김영희',        '엄마 용돈',       '이체',      DATE_SUB(NOW(), INTERVAL 7 DAY), 2);
+  (101, 1, 'IN',  300000, '김철수',        '김철수',          '이체',      DATE_ADD(DATE_SUB(CURDATE(), INTERVAL 1 DAY), INTERVAL '15:12' HOUR_MINUTE), 1),  -- 어제 오후
+  (102, 1, 'OUT',  42000, '한국전력공사',  '한전 전기요금',   '자동이체',  DATE_ADD(CURDATE(), INTERVAL '08:30' HOUR_MINUTE), 4),                            -- 오늘 아침
+  (103, 1, 'OUT',  19000, '대한정보통신',  '대한정보통신',    '자동이체',  DATE_ADD(CURDATE(), INTERVAL '09:10' HOUR_MINUTE), NULL),                         -- 오늘 아침
+  (104, 1, 'IN',  620000, '국민연금공단',  '국민연금',        '이체',      DATE_ADD(DATE_SUB(CURDATE(), INTERVAL 3 DAY), INTERVAL '10:00' HOUR_MINUTE), 5),
+  (105, 1, 'OUT',   3500, '수수료',        '타행이체수수료',  '수수료',    DATE_ADD(DATE_SUB(CURDATE(), INTERVAL 5 DAY), INTERVAL '14:00' HOUR_MINUTE), NULL),
+  (106, 1, 'IN',   50000, '김영희',        '엄마 용돈',       '이체',      DATE_ADD(DATE_SUB(CURDATE(), INTERVAL 7 DAY), INTERVAL '11:20' HOUR_MINUTE), 2);
 
 -- 알림: 101~103 미청취(heard_at NULL), 나머지는 이미 들음.
 INSERT INTO notifications (id, user_id, transaction_id, sent_at, read_at, heard_at) VALUES
-  (1001, 1, 101, DATE_SUB(NOW(), INTERVAL 1 DAY),  NULL, NULL),
-  (1002, 1, 102, DATE_SUB(NOW(), INTERVAL 5 HOUR), NULL, NULL),
-  (1003, 1, 103, DATE_SUB(NOW(), INTERVAL 4 HOUR), NULL, NULL),
+  (1001, 1, 101, (SELECT occurred_at FROM transactions WHERE id = 101), NULL, NULL),
+  (1002, 1, 102, (SELECT occurred_at FROM transactions WHERE id = 102), NULL, NULL),
+  (1003, 1, 103, (SELECT occurred_at FROM transactions WHERE id = 103), NULL, NULL),
   (1004, 1, 104, DATE_SUB(NOW(), INTERVAL 3 DAY),  DATE_SUB(NOW(), INTERVAL 3 DAY), DATE_SUB(NOW(), INTERVAL 3 DAY)),
   (1005, 1, 105, DATE_SUB(NOW(), INTERVAL 5 DAY),  DATE_SUB(NOW(), INTERVAL 5 DAY), DATE_SUB(NOW(), INTERVAL 5 DAY)),
   (1006, 1, 106, DATE_SUB(NOW(), INTERVAL 7 DAY),  DATE_SUB(NOW(), INTERVAL 7 DAY), DATE_SUB(NOW(), INTERVAL 7 DAY));
