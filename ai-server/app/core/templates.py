@@ -1,6 +1,7 @@
 """Deterministic sentence templates — senior-mode-policy.md section 4. No LLM here."""
 from __future__ import annotations
 
+import re
 from datetime import datetime
 
 from app.core.candidates import clean_spoken_name
@@ -131,6 +132,31 @@ def focused(item: dict, when: str) -> str:
     if level == "PARTIAL":
         return f"{head} 자세한 내역은 제가 볼 수 없어요."
     return f"{head} {explain_unknown(tx.get('counterparty_name', ''))}"
+
+
+def counter_question_from(asked: str) -> str:
+    """창구 목록에 담을 문장. 어르신이 한 말을 그대로 옮긴다.
+
+    주제만 뽑아 "적금에 대해 문의" 처럼 다듬어 봤지만, "대출 받고 싶어"가 "대출 받고에 대해
+    문의"가 되는 식으로 계속 어긋났다. 말을 고쳐 쓰는 것 자체가 작은 의미의 지어내기이기도 하다.
+    직원에게도 고객이 실제로 한 말이 더 쓸모 있다.
+    """
+    text = (asked or "").strip()
+    return f'"{text}" (고객 말씀 그대로)' if text else "창구에서 여쭤볼 내용"
+
+
+def ask_free() -> str:
+    """무엇을 창구에 물어볼지 직접 받는다. 목록에 빈 문구를 넣으면 직원에게 쓸모가 없다."""
+    return "무엇이 궁금하신지 말씀해 주세요. 들은 그대로 창구 목록에 적어드릴게요."
+
+
+def cannot_answer() -> str:
+    """앱이 답할 수 없는 은행 질문. 모른다고 밝히고 창구로 잇는다.
+
+    무엇을 들었는지는 화면의 말풍선이 이미 보여주므로 음성에서 되풀이하지 않는다
+    (한 번에 한 가지만 말한다, senior-mode-policy §1).
+    """
+    return "그건 제가 알려드리기 어려워요. 창구에서 여쭤볼 목록에 적어둘까요?"
 
 
 def default_question(tx: dict) -> str:

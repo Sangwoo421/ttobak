@@ -14,7 +14,8 @@ LLM 은 **설명 문장 생성**과 **동점 후보 선택**, **규칙이 못 �
 | `SLOT_RECIPIENT` | 받는 사람 확인/되묻기 | (후보 최대 3개 choices) · NO |
 | `SLOT_AMOUNT` | 금액 되묻기 | NO |
 | `CONFIRM` | **확인 톤**. "받는 사람 X, 금액 Y. 맞습니까?" | YES(맞아요) · NO(아니에요) |
-| `CLARIFY` | 못 알아들음 → 후보 3개 버튼 | choices 3개 · REPEAT |
+| `CLARIFY` | 못 알아들음 → 후보 버튼 | choices 4개(마지막은 "그 밖의 것 창구에서 물어보기") · REPEAT |
+| `ASK_FREE` | 창구에 무엇을 물어볼지 직접 받는 중 | NO(아니요, 괜찮아요) |
 | `SUMMARY` | 요약서 생성·안내 완료 | OPEN_SUMMARY 액션 → 프론트가 요약서 화면으로 |
 | `DONE` | 직원 처리 대기/완료 | (요약서 화면에서 status 폴링) |
 | `END` | 종료 | |
@@ -31,6 +32,7 @@ LLM 은 **설명 문장 생성**과 **동점 후보 선택**, **규칙이 못 �
 | `ASK_AMOUNT` | 얼마야, 얼마 나갔어 | `얼마` |
 | `ASK_ABOUT_TX` | 첫 번째 거 뭐야, 그 정보통신 뭐야, 이거 뭐야 | `뭐야|뭐지|무슨|뭔|어디` 또는 서수(`첫|두|세|1|2|3`)/거래명 매칭 |
 | `MUTE_ITEM` | 이건 매번 안 들어도 돼 | `안 ?들어도|끄|빼줘` |
+| `ASK_UNSUPPORTED` | 적금 안내해줘, 카드 재발급 어떻게 해 | 은행 상품·업무 낱말(적금·예금·대출·카드·통장·공과금·증명서 등). **이체·금액 규칙보다 먼저 본다** ("공과금 자동이체 신청"이 이체로 잡히면 안 되므로). 단 화면에 떠 있는 거래를 가리키면 건너뛴다 |
 | `YES` | 응, 맞아, 그래, 네 | `^(응|어|네|예|맞|그래|좋아|해줘)` |
 | `NO` | 아니, 아니야, 틀려 | `^(아니|아냐|틀|안 ?해)` |
 | `UNKNOWN` | (위에 없음) | → LLM 구조화 분류 → 확신 < `INTENT_MIN_CONF` 이면 CLARIFY |
@@ -85,8 +87,21 @@ LISTENING ── GO_COUNTER ──> SUMMARY (POST /ai/session/{id}/summary 와 �
 LISTENING ── REPEAT ──> 마지막 assistant_text 재생 ──> 이전 상태 유지
 LISTENING ── MUTE_ITEM ──> 대상 TX 해결 → actions:[MUTE] ──> LISTENING
 LISTENING ── STOP ──> END ("네, 다음에 또 불러 주세요.")
-LISTENING ── UNKNOWN(저확신) ──> CLARIFY (choices: 최근 거래 3건 or 의도 3개) ──> choice ──> 해당 전이
+LISTENING ── UNKNOWN(저확신) ──> CLARIFY (choices: 최근 거래 3건 or 의도 4개) ──> choice ──> 해당 전이
+
+LISTENING ── ASK_UNSUPPORTED ──> OFFER_ADD_QUESTION
+    ("그건 제가 알려드리기 어려워요. 창구에서 여쭤볼 목록에 적어둘까요?")
+    담을 문장 = 어르신이 한 말 그대로. 다듬지 않는다.
+CLARIFY ── choice INTENT:ASK_UNSUPPORTED ──> ASK_FREE
+    ("무엇이 궁금하신지 말씀해 주세요. 들은 그대로 창구 목록에 적어드릴게요.")
+ASK_FREE ── 발화 ──> actions:[ADD_QUESTION] ──> LISTENING
+         ── NO / STOP ──> LISTENING
 ```
+
+**막다른 길을 만들지 않는다.** 어떤 말이든 결국 창구 목록으로 갈 수 있어야 한다.
+"적금 안내해줘"처럼 알아들었지만 답할 수 없는 말을 "잘 못 들었어요"로 처리하면,
+어르신 입장에서는 말이 통했는데도 더 할 수 있는 게 없어진다. 인식 실패(CLARIFY)와
+답할 수 없음(창구로)은 다르게 다룬다.
 
 **절대 규칙**
 1. `ADD_REQUEST` 는 `CONFIRM` 에서 `YES` 를 받은 직후에만 생성된다. 다른 경로 없음.
