@@ -2,6 +2,7 @@
   "user_id": 1,
   "user_name": "김영자",
   "remaining_count": 0,
+  "unheard_count": 3,
   "items": [
     {
       "ordinal": 1,

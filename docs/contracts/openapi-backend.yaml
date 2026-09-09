@@ -434,12 +434,13 @@ components:
 
     BriefingResponse:
       type: object
-      required: [user_id, user_name, items, remaining_count]
+      required: [user_id, user_name, items, remaining_count, unheard_count]
       properties:
         user_id: { type: integer }
         user_name: { type: string, example: 김영자 }
         items: { type: array, maxItems: 3, items: { $ref: "#/components/schemas/BriefingItem" } }
-        remaining_count: { type: integer, description: 이번에 읽지 않은 미청취 건수 }
+        remaining_count: { type: integer, description: "이번에 읽어주고 남은 미청취 건수 (unheard_count - items 길이)" }
+        unheard_count: { type: integer, description: "뮤트 제외 후 미청취 알림 총 개수(countUnheard). 홈 화면 뱃지가 보는 값" }
 
     Counterparty:
       type: object
