@@ -35,17 +35,25 @@ def test_to_korean_negative():
     assert to_korean(-100) == "마이너스 " + to_korean(100)
 
 
+# 금액은 한글 수사가 아니라 자릿수 콤마로 쓴다. 읽고 훑기 쉽고 TTS 도 자연스럽게 읽는다.
+# 음성 인식 후보 매칭용 한글 수사는 to_korean() 이 따로 맡는다("삼십만원"이라고 말할 수 있으므로).
 @pytest.mark.parametrize(
     "amount, expected",
     [
-        (300_000, "삼십만 원"),
-        (42_000, "사만 이천 원"),
-        (19_000, "만 구천 원"),
+        (300_000, "300,000원"),
+        (42_000, "42,000원"),
+        (19_000, "19,000원"),
+        (3_500, "3,500원"),
         (None, "금액 미정"),
     ],
 )
 def test_to_korean_won(amount, expected):
     assert to_korean_won(amount) == expected
+
+
+def test_to_korean_still_spells_numbers_for_voice_matching():
+    """후보 매칭은 어르신이 '삼십만원'이라고 말할 걸 잡아야 하므로 한글 수사가 필요하다."""
+    assert to_korean(300_000) == "삼십만"
 
 
 def test_native_count():

@@ -19,7 +19,7 @@ from app.core.candidates import Candidate, Scored, decide, score_candidates
 from app.core.intents import YES_NO_STATES, classify as classify_rule, llm_candidate_intents
 from app.core.session_store import Session
 
-LISTEN_STATES = {"LISTENING", "OFFER_ADD_QUESTION", "SLOT_RECIPIENT", "SLOT_AMOUNT", "CONFIRM"}
+LISTEN_STATES = {"LISTENING", "OFFER_ADD_QUESTION", "SLOT_RECIPIENT", "SLOT_AMOUNT", "CONFIRM", "ASK_FREE"}
 TX_INTENTS = {"ASK_ABOUT_TX", "ASK_WHO", "ASK_AMOUNT", "MUTE_ITEM"}
 
 
@@ -32,6 +32,7 @@ BUTTONS: dict[str, list[dict]] = {
     "EXPLAIN": [_b("REPEAT", "다시 들려주세요"), _b("GO_COUNTER", "창구 갈 일 정리"), _b("STOP", "대화 종료", "danger")],
     "OFFER_ADD_QUESTION": [_b("YES", "네, 적어주세요", "primary"), _b("NO", "아니요")],
     "SLOT_RECIPIENT": [_b("NO", "아니에요")],
+    "ASK_FREE": [_b("NO", "아니요, 괜찮아요")],
     "SLOT_AMOUNT": [_b("NO", "아니에요")],
     "CONFIRM": [_b("YES", "맞아요", "primary"), _b("NO", "아니에요", "danger")],
     "CLARIFY": [_b("REPEAT", "다시 들려주세요"), _b("STOP", "대화 종료", "danger")],
@@ -111,7 +112,9 @@ def _on_button(session: Session, ctx: TurnContext, b: str, r: TurnResult) -> Non
     elif b == "GO_COUNTER":
         _do_summary(session, ctx, r)
     elif b in ("YES", "NO"):
-        if session.state in YES_NO_STATES:
+        if session.state == "ASK_FREE":
+            r.assistant_text, r.state = T.question_skipped(), "LISTENING"
+        elif session.state in YES_NO_STATES:
             _dispatch_intent(session, ctx, b, None, r)
         else:
             r.intent = "UNKNOWN"
@@ -161,6 +164,18 @@ def _on_text(session: Session, ctx: TurnContext, text: str, r: TurnResult) -> No
         r.intent, r.intent_confidence = "UNKNOWN", 0.0
         r.path = ["rule"]
         _clarify_intents(session, r)
+        return
+
+    # ASK_FREE: 무엇을 물어볼지 받는 중. "그만/아니요"가 아니면 들은 말을 그대로 담는다.
+    if session.state == "ASK_FREE":
+        intent, conf, path = classify_rule(text, session.state, session.tx_name_forms())
+        r.path = list(path)
+        if intent in ("STOP", "NO"):
+            r.intent, r.intent_confidence = intent, conf
+            r.assistant_text, r.state = T.question_skipped(), "LISTENING"
+            return
+        r.intent, r.intent_confidence = "ASK_FREE", 1.0
+        _ask_free_answer(session, text, r)
         return
 
     # SLOT_AMOUNT: any utterance is first tried as an amount.
@@ -231,9 +246,36 @@ def _dispatch_intent(session: Session, ctx: TurnContext, intent: str, text: str 
         _tx_intent(session, ctx, intent, text, r, free_question)
     elif intent == "REQUEST_TRANSFER":
         _request_transfer(session, ctx, text, r)
+    elif intent == "ASK_UNSUPPORTED":
+        _ask_unsupported(session, text, r)
     else:
         r.intent = "UNKNOWN"
         _clarify_intents(session, r)
+
+
+def _ask_unsupported(session: Session, text: str | None, r: TurnResult) -> None:
+    """앱이 답할 수 없는 은행 질문. 지어내지 않고 창구로 넘긴다.
+
+    "잘 못 들었어요"로 처리하면 안 된다. 인식은 됐고, 우리가 모르는 것뿐이다. 어르신 입장에서
+    말은 통했는데 앱이 못 알아들었다고 하면 다시 물어볼 방법이 없어 대화가 막다른 길이 된다.
+    확인 불가 거래를 다루는 방식과 같다: 모른다고 밝히고 창구 목록에 담을지 물어본다.
+    """
+    asked = (text or "").strip()
+    if not asked:
+        # CLARIFY 선택지로 들어온 경우. 담을 내용이 없으니 무엇을 물어볼지 먼저 듣는다.
+        r.assistant_text, r.state = T.ask_free(), "ASK_FREE"
+        return
+    session.pending_question = {"transaction_id": None, "text": T.counter_question_from(asked)}
+    r.assistant_text = T.cannot_answer()
+    r.state = "OFFER_ADD_QUESTION"
+
+
+def _ask_free_answer(session: Session, text: str, r: TurnResult) -> None:
+    """ASK_FREE: 들은 말을 그대로 창구 목록에 담는다. 이미 담겠다고 한 상태라 다시 묻지 않는다."""
+    q = {"transaction_id": None, "text": T.counter_question_from(text)}
+    session.questions.append(q)
+    r.actions.append({"type": "ADD_QUESTION", "payload": q})
+    r.assistant_text, r.state = T.question_added(), "LISTENING"
 
 
 # ============================================================= globals ====

@@ -108,7 +108,10 @@ def test_demo_scenario_seven_turns(session, ctx):
     assert r6.intent == "UNKNOWN"
     assert r6.decision == "BUTTON"
     assert r6.state == "CLARIFY"
-    assert len(r6.choices) == 3
+    # 선택지 4개: 거래 묻기 / 이체 준비 / 창구 정리 / 그 밖의 것 창구에 묻기
+    # 마지막 것은 못 알아들었을 때도 막다른 길을 만들지 않기 위한 탈출구다.
+    assert len(r6.choices) == 4
+    assert r6.choices[-1]["id"] == "INTENT:ASK_UNSUPPORTED"
 
     # 턴 7 | choice INTENT:GO_COUNTER | GO_COUNTER | SUMMARY -> DONE
     r7 = handle_turn(session, ctx, choice_id="INTENT:GO_COUNTER")

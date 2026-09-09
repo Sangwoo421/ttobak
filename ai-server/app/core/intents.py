@@ -13,6 +13,17 @@ RULES: list[tuple[str, re.Pattern]] = [
     ("REPEAT", re.compile(r"다시|한 ?번 ?더|못 ?들")),
     ("STOP", re.compile(r"그만|됐어|끝|종료")),
     ("GO_COUNTER", re.compile(r"창구|은행 ?가|정리")),
+    # 은행 상품·업무 이야기. 앱이 답할 수 없다. "적금 안내해줘", "공과금 자동이체 신청".
+    # 이체·금액 규칙보다 먼저 본다. "공과금 자동이체 신청"이 REQUEST_TRANSFER 로 잡혀
+    # 이체 슬롯 채우기로 들어가면 안 되기 때문이다.
+    # 단 화면에 떠 있는 거래를 가리키면 건너뛴다(classify 참고) - 그건 답할 수 있다.
+    ("ASK_UNSUPPORTED", re.compile(
+        r"적금|예금|정기|청약|펀드|주식|보험|연금|대출|이자|금리|만기|해지|"
+        r"카드|체크카드|신용카드|재발급|분실|정지|한도|"
+        r"통장|비밀번호|공인인증|인증서|보안카드|OTP|"
+        r"환전|외화|송금한도|공과금|세금|납부|"
+        r"증명서|잔액증명|거래내역서|발급|신규|가입|상품"
+    )),
     ("REQUEST_TRANSFER", re.compile(r"보내|부쳐|이체|송금|넣어")),
     ("ASK_WHO", re.compile(r"누가|누구")),
     ("ASK_AMOUNT", re.compile(r"얼마")),
@@ -26,7 +37,7 @@ RULES: list[tuple[str, re.Pattern]] = [
 ORDINAL_RE = re.compile(r"첫|두 ?번째|둘째|세 ?번째|셋째|[123] ?번")
 
 ALL_INTENTS = ["REPEAT", "STOP", "GO_COUNTER", "REQUEST_TRANSFER", "ASK_WHO", "ASK_AMOUNT",
-               "ASK_ABOUT_TX", "MUTE_ITEM", "YES", "NO", "UNKNOWN"]
+               "ASK_ABOUT_TX", "MUTE_ITEM", "ASK_UNSUPPORTED", "YES", "NO", "UNKNOWN"]
 
 _WS = re.compile(r"\s+")
 
@@ -41,8 +52,12 @@ def _mentions_tx(text: str, tx_forms: list[str] | None) -> bool:
 def classify(text: str, state: str, tx_forms: list[str] | None = None) -> tuple[str, float, list[str]]:
     """-> (intent, confidence, path). Rule hit = confidence 1.0; miss = ("UNKNOWN", 0.0)."""
     t = (text or "").strip()
+    # 화면에 떠 있는 거래를 가리키는 말이면 앱이 답할 수 있다. 상품 규칙보다 우선한다.
+    points_at_known_tx = bool(ORDINAL_RE.search(t)) or _mentions_tx(t, tx_forms)
     for name, rx in RULES:
         if name in ("YES", "NO") and state not in YES_NO_STATES:
+            continue
+        if name == "ASK_UNSUPPORTED" and points_at_known_tx:
             continue
         if rx.search(t):
             return name, 1.0, ["rule"]
@@ -52,7 +67,8 @@ def classify(text: str, state: str, tx_forms: list[str] | None = None) -> tuple[
 
 
 def llm_candidate_intents(state: str) -> list[str]:
-    base = ["ASK_ABOUT_TX", "ASK_WHO", "ASK_AMOUNT", "REQUEST_TRANSFER", "GO_COUNTER", "REPEAT", "STOP", "MUTE_ITEM"]
+    base = ["ASK_ABOUT_TX", "ASK_WHO", "ASK_AMOUNT", "REQUEST_TRANSFER", "GO_COUNTER", "REPEAT", "STOP",
+            "MUTE_ITEM", "ASK_UNSUPPORTED"]
     if state in YES_NO_STATES:
         base += ["YES", "NO"]
     return base + ["UNKNOWN"]
