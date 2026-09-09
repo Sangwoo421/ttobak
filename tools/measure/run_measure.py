@@ -74,6 +74,14 @@ def run_one(client: httpx.Client, ai: str, mode: str, audio: bytes, filename: st
         time.sleep(pause_s)
     turn = client.post(f"{ai}/ai/turn", json={"session_id": sid, "text": text}).json()
     d = turn.get("debug", {})
+    # LLM 쪽 API 장애(503/504)는 레이어의 판정이 아니다. 새 세션에서 같은 텍스트를 다시 보낸다 (STT 한도 소모 없음).
+    for _ in range(2):
+        if not (d.get("llm_used") and d.get("provider_error")):
+            break
+        time.sleep(3)
+        start = client.post(f"{ai}/ai/session/start", json={"user_id": USER_ID, "mode": mode}).json()
+        turn = client.post(f"{ai}/ai/turn", json={"session_id": start["session_id"], "text": text}).json()
+        d = turn.get("debug", {})
     return {
         "text": text,
         "intent": d.get("intent"),
@@ -81,6 +89,7 @@ def run_one(client: httpx.Client, ai: str, mode: str, audio: bytes, filename: st
         "score": d.get("match_score"),
         "decision": d.get("decision"),
         "state": turn.get("state"),
+        "llm_error": (d.get("provider_error") or "")[:60],
     }
 
 
