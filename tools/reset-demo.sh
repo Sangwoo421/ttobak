@@ -43,9 +43,12 @@ fi
 RUN_SQL <<'SQL'
 DELETE FROM summary_items   WHERE summary_id >= 2;
 DELETE FROM counter_summaries WHERE id >= 2;
+-- 리허설에서 뽑은 대기표. 남아 있으면 다음 발급이 409(이미 활성 대기표 있음)로 막힌다.
+DELETE FROM branch_tickets WHERE id >= 9000;
 UPDATE notifications SET heard_at = NULL, read_at = NULL WHERE id IN (1001, 1002, 1003);
 DELETE FROM mute_rules;
 DELETE FROM dialog_logs;
 SELECT '── 복구 완료 ──' AS '';
 SELECT n.id, t.counterparty_name, n.heard_at FROM notifications n JOIN transactions t ON t.id = n.transaction_id WHERE n.id IN (1001,1002,1003);
+SELECT COUNT(*) AS '남은 대기표' FROM branch_tickets WHERE id >= 9000;
 SQL

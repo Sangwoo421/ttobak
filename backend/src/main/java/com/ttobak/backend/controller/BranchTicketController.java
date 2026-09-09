@@ -44,7 +44,9 @@ public class BranchTicketController {
 
     @GetMapping("/branch-tickets/active")
     public BranchTicketDto active(
-            @RequestParam long userId,
+            // 계약(openapi-backend.yaml)과 프론트가 user_id 로 보낸다. @RequestParam 은 기본으로
+            // 메서드 파라미터 이름(userId)을 찾으므로 name 을 명시하지 않으면 400 이 난다.
+            @RequestParam("user_id") long userId,
             @RequestHeader(value = "Authorization", required = false) String authorization) {
         return branchTicketService.active(userId, authorization);
     }
