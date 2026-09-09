@@ -1,0 +1,115 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@700;800&family=Gothic+A1:wght@400;500;700;800&display=swap');
+    body { margin: 0; font-family: 'Gothic A1', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; }
+    a { color: #8a5a2b; } a:hover { color: #6b4520; }
+  </style>
+</helmet>
+
+<!-- B안: 따뜻한 생활감 — 종이 같은 바탕, 명조 제목, 은행 앱보다 '안내문'에 가깝게 -->
+<div style="width: 460px; min-height: 900px; background: #faf6ee; display: flex; flex-direction: column;">
+
+  <!-- 인사 -->
+  <div style="padding: 30px 22px 22px;">
+    <p style="margin: 0 0 4px; font-size: 17px; font-weight: 700; color: #a08b6a; letter-spacing: 0.5px;">2026년 9월 9일 화요일</p>
+    <h1 style="margin: 0; font-family: 'Nanum Myeongjo', serif; font-size: 32px; font-weight: 800; color: #3d3226; line-height: 1.35;">김영자 님,<br>안녕하세요</h1>
+  </div>
+
+  <!-- 잔액 -->
+  <div style="margin: 0 22px; padding: 20px 0; border-top: 2px solid #e6dcc8; border-bottom: 2px solid #e6dcc8;">
+    <p style="margin: 0 0 6px; font-size: 18px; font-weight: 700; color: #8a7c66;">지금 통장에 있는 돈</p>
+    <p style="margin: 0; font-size: 38px; font-weight: 800; color: #3d3226; letter-spacing: -1px;">1,234,560원</p>
+  </div>
+
+  <!-- 큰 안내 -->
+  <div style="padding: 24px 22px 6px;">
+    <p style="margin: 0 0 14px; font-family: 'Nanum Myeongjo', serif; font-size: 24px; font-weight: 700; color: #3d3226;">무엇을 도와드릴까요?</p>
+
+    <div style="display: flex; flex-direction: column; gap: 14px;">
+
+      <button style="display: flex; align-items: center; gap: 16px; width: 100%; min-height: 92px; padding: 16px 18px; text-align: left; border: none; border-radius: 22px; background: #f0e4cc; box-shadow: 0 3px 0 #ddcda9;">
+        <span style="flex: none; width: 52px; height: 52px; border-radius: 50%; background: #fff; display: flex; align-items: center; justify-content: center;">
+          <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#8a5a2b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>
+        </span>
+        <span style="display: flex; flex-direction: column; gap: 4px;">
+          <b style="font-size: 24px; font-weight: 800; color: #3d3226;">들어오고 나간 돈 듣기</b>
+          <small style="font-size: 17px; color: #8a7c66;">새로 온 것 3가지</small>
+        </span>
+      </button>
+
+      <button style="display: flex; align-items: center; gap: 16px; width: 100%; min-height: 92px; padding: 16px 18px; text-align: left; border: none; border-radius: 22px; background: #fff; box-shadow: 0 3px 0 #e6dcc8;">
+        <span style="flex: none; width: 52px; height: 52px; border-radius: 50%; background: #f5ede0; display: flex; align-items: center; justify-content: center;">
+          <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#8a5a2b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a3 3 0 0 1 3 3v5a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3z"/><path d="M19 11a7 7 0 0 1-14 0"/><path d="M12 18v3"/></svg>
+        </span>
+        <span style="display: flex; flex-direction: column; gap: 4px;">
+          <b style="font-size: 24px; font-weight: 800; color: #3d3226;">말로 물어보기</b>
+          <small style="font-size: 17px; color: #8a7c66;">궁금한 걸 그냥 말씀하세요</small>
+        </span>
+      </button>
+
+      <button style="display: flex; align-items: center; gap: 16px; width: 100%; min-height: 92px; padding: 16px 18px; text-align: left; border: none; border-radius: 22px; background: #fff; box-shadow: 0 3px 0 #e6dcc8;">
+        <span style="flex: none; width: 52px; height: 52px; border-radius: 50%; background: #f5ede0; display: flex; align-items: center; justify-content: center;">
+          <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#8a5a2b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V9l7-5 7 5v12"/><path d="M9 21v-6h6v6"/></svg>
+        </span>
+        <span style="display: flex; flex-direction: column; gap: 4px;">
+          <b style="font-size: 24px; font-weight: 800; color: #3d3226;">창구 갈 일 정리</b>
+          <small style="font-size: 17px; color: #8a7c66;">은행에서 할 일을 적어드려요</small>
+        </span>
+      </button>
+    </div>
+  </div>
+
+  <!-- 내역 -->
+  <div style="padding: 26px 22px 22px;">
+    <p style="margin: 0 0 4px; font-family: 'Nanum Myeongjo', serif; font-size: 24px; font-weight: 700; color: #3d3226;">들어오고 나간 돈</p>
+    <p style="margin: 0 0 16px; font-size: 16px; color: #8a7c66;">궁금한 줄을 누르면 읽어드려요</p>
+
+    <div style="display: flex; flex-direction: column; gap: 0;">
+
+      <button style="display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 84px; padding: 16px 4px; border: none; border-bottom: 1px solid #e6dcc8; background: transparent; text-align: left;">
+        <span style="display: flex; flex-direction: column; gap: 5px;">
+          <b style="font-size: 22px; font-weight: 800; color: #3d3226;">김철수</b>
+          <span style="font-size: 16px; color: #8a7c66;">어제 · 확인됨</span>
+        </span>
+        <span style="display: flex; align-items: center; gap: 12px;">
+          <span style="font-size: 21px; font-weight: 800; color: #1558d6;">+300,000원</span>
+          <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#a08b6a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg>
+        </span>
+      </button>
+
+      <button style="display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 84px; padding: 16px 4px; border: none; border-bottom: 1px solid #e6dcc8; background: transparent; text-align: left;">
+        <span style="display: flex; flex-direction: column; gap: 5px;">
+          <b style="font-size: 22px; font-weight: 800; color: #3d3226;">한국전력공사</b>
+          <span style="font-size: 16px; color: #8a7c66;">오늘 · 일부 확인</span>
+        </span>
+        <span style="display: flex; align-items: center; gap: 12px;">
+          <span style="font-size: 21px; font-weight: 800; color: #3d3226;">-42,000원</span>
+          <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#a08b6a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg>
+        </span>
+      </button>
+
+      <button style="display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 84px; padding: 16px 4px; border: none; border-bottom: 1px solid #e6dcc8; background: transparent; text-align: left;">
+        <span style="display: flex; flex-direction: column; gap: 5px;">
+          <b style="font-size: 22px; font-weight: 800; color: #3d3226;">대한정보통신</b>
+          <span style="font-size: 16px; color: #c5221f; font-weight: 700;">오늘 · 확인 안 됨</span>
+        </span>
+        <span style="display: flex; align-items: center; gap: 12px;">
+          <span style="font-size: 21px; font-weight: 800; color: #3d3226;">-19,000원</span>
+          <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#a08b6a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg>
+        </span>
+      </button>
+
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>
