@@ -12,12 +12,14 @@ defineProps({
 </template>
 
 <style scoped>
+/* 상태는 색 면적을 작게 가져간다. 거래 이름(21px)이 주인공이고 이 배지는 곁말이라
+   같은 크기로 키우면 줄이 두 개의 제목처럼 읽힌다. 내용은 어차피 음성으로도 나간다. */
 .level-badge {
   display: inline-block;
-  padding: 4px 12px;
+  padding: 3px 9px;
   border-radius: 999px;
-  font-size: 18px;
-  font-weight: 800;
+  font-size: 15px;
+  font-weight: 700;
   white-space: nowrap;
 }
 

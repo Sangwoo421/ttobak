@@ -1,0 +1,66 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Gothic+A1:wght@700;800;900&display=swap');
+    body { margin: 0; font-family: 'Gothic A1', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; }
+    a { color: #0b57d0; } a:hover { color: #06398a; }
+  </style>
+</helmet>
+
+<!-- C안 요약서: 창구에서 폰을 내밀었을 때 직원이 1초 안에 읽는 것이 목표.
+     코드가 화면의 절반을 차지하고, 나머지는 굵은 줄로만 구분한다. -->
+<div style="width: 460px; min-height: 900px; background: #fff; display: flex; flex-direction: column;">
+
+  <div style="padding: 14px 18px; border-bottom: 4px solid #111; display: flex; align-items: center; gap: 12px;">
+    <button style="flex: none; width: 54px; height: 54px; border: 3px solid #111; border-radius: 10px; background: #fff; display: flex; align-items: center; justify-content: center;">
+      <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="#111" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5 8 12l7 7"/></svg>
+    </button>
+    <h1 style="flex: 1; margin: 0; font-size: 26px; font-weight: 900; color: #111;">창구 요약서</h1>
+  </div>
+
+  <!-- 코드: 화면의 주인공 -->
+  <div style="background: #111; padding: 30px 20px 26px; text-align: center;">
+    <p style="margin: 0 0 10px; font-size: 20px; font-weight: 800; color: #ffd400;">직원에게 보여주세요</p>
+    <div style="font-size: 62px; font-weight: 900; color: #fff; letter-spacing: 8px; line-height: 1.05;">482913</div>
+    <p style="margin: 14px 0 0; font-size: 21px; font-weight: 800; color: #d6d6d6;">번호표 12번 · 종로지점</p>
+  </div>
+
+  <!-- 하려던 일 -->
+  <div style="padding: 22px 20px; border-bottom: 4px solid #111;">
+    <p style="margin: 0 0 12px; font-size: 19px; font-weight: 900; color: #767676; letter-spacing: 1px;">하려던 일</p>
+    <p style="margin: 0 0 8px; font-size: 31px; font-weight: 900; color: #111; line-height: 1.3; letter-spacing: -0.6px;">아들 김철수 님에게<br>200,000원 보내기</p>
+    <p style="margin: 0; font-size: 19px; font-weight: 700; color: #4a4a4a;">KB국민은행 9876-54-****98</p>
+  </div>
+
+  <!-- 여쭤볼 것 -->
+  <div style="padding: 22px 20px; border-bottom: 4px solid #111; background: #fff4f3;">
+    <p style="margin: 0 0 12px; font-size: 19px; font-weight: 900; color: #c5221f; letter-spacing: 1px;">여쭤볼 것</p>
+    <p style="margin: 0; font-size: 26px; font-weight: 800; color: #111; line-height: 1.45;">'대한정보통신' 19,000원<br>오늘 출금이 무엇인지</p>
+  </div>
+
+  <!-- 준비물 -->
+  <div style="padding: 22px 20px;">
+    <p style="margin: 0 0 14px; font-size: 19px; font-weight: 900; color: #767676; letter-spacing: 1px;">가져가실 것</p>
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <div style="display: flex; align-items: center; gap: 12px; border: 4px solid #111; border-radius: 12px; padding: 16px 18px;">
+        <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="#111" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+        <b style="flex: 1; font-size: 26px; font-weight: 900; color: #111;">신분증</b>
+        <span style="background: #111; color: #fff; font-size: 17px; font-weight: 900; padding: 5px 12px; border-radius: 6px;">꼭</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px; border: 3px solid #b9b9b9; border-radius: 12px; padding: 16px 18px;">
+        <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="#b9b9b9" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+        <b style="flex: 1; font-size: 24px; font-weight: 800; color: #4a4a4a;">통장 또는 카드</b>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

@@ -1,15 +1,33 @@
-/* 또박또박 공통 스타일. UI 라이브러리 없이 CSS 변수만 쓴다. */
+/* 또박또박 공통 스타일. UI 라이브러리 없이 CSS 변수만 쓴다.
+   어르신 모드의 색·여백은 design/ 의 A안 시안을 따른다. 장식을 두지 않고
+   따뜻한 회색 종이 위에 흰 카드 하나, 강조색은 KB 노랑 하나만 쓴다. */
 :root {
   --kb-yellow: #ffbc00;
   --kb-yellow-dark: #e5a800;
   --kb-yellow-soft: #fff4cc;
   --kb-brown: #60584c;
 
-  --bg: #f4f4f1;
+  /* A안 팔레트 */
+  --paper: #f3f2ee;      /* 바탕 */
+  --ink: #17161a;        /* 본문 */
+  --ink-2: #4a463f;      /* 보조 본문 */
+  --ink-3: #85817a;      /* 설명 */
+  --ink-4: #9a968c;      /* 섹션 라벨 */
+  --ink-5: #b3afa6;      /* 가장 약한 글 */
+  --card-line: #e9e6df;  /* 카드 테두리 1px */
+  --hairline: #f0eeea;   /* 카드 안 줄 구분선 */
+  --field: #f8f7f4;      /* 입력칸 바탕 */
+  --amount-in: #1558d6;  /* 들어온 돈 */
+  /* 종이가 놓인 정도의 깊이만. 그림자 두 겹, 둘 다 아주 옅게. */
+  --soft: 0 1px 2px rgba(23, 22, 26, 0.04), 0 8px 24px rgba(23, 22, 26, 0.05);
+  --r-card: 20px;
+  --r-tile: 17px;
+
+  --bg: var(--paper);
   --card: #ffffff;
-  --text: #1b1b1b;
-  --muted: #6b6b6b;
-  --line: #e2e2dd;
+  --text: var(--ink);
+  --muted: var(--ink-3);
+  --line: var(--card-line);
 
   --primary: var(--kb-yellow);
   --primary-text: #1b1b1b;
@@ -22,12 +40,12 @@
   --confirm-border: #806100;
   --confirm-text: #302812;
 
-  --ok: #1e8e3e;
+  --ok: #1d7a3d;
   --ok-bg: #e6f4ea;
-  --warn: #b06000;
-  --warn-bg: #fef3d9;
+  --warn: #8a5a00;
+  --warn-bg: #fff4d1;
   --bad: #c5221f;
-  --bad-bg: #fce8e6;
+  --bad-bg: #fdecec;
 
   --radius: 16px;
   --shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
@@ -48,7 +66,7 @@ body {
   padding: 0;
   background: var(--bg);
   color: var(--text);
-  font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', 'Segoe UI', sans-serif;
+  font-family: 'Gothic A1', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
   line-height: 1.4;
 }
@@ -56,6 +74,11 @@ body {
 button {
   font-family: inherit;
   cursor: pointer;
+}
+
+/* 금액·계좌번호·코드처럼 자릿수가 흔들리면 안 되는 숫자에 붙인다. */
+.num {
+  font-variant-numeric: tabular-nums;
 }
 
 a {

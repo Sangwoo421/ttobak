@@ -1,0 +1,63 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@700;800&family=Gothic+A1:wght@400;500;700;800&display=swap');
+    body { margin: 0; font-family: 'Gothic A1', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; }
+    a { color: #8a5a2b; } a:hover { color: #6b4520; }
+  </style>
+</helmet>
+
+<!-- B안 요약서: 손으로 적어간 쪽지처럼. 창구 직원에게 건네는 종이 한 장의 느낌. -->
+<div style="width: 460px; min-height: 900px; background: #faf6ee; display: flex; flex-direction: column;">
+
+  <div style="padding: 16px 20px 12px; display: flex; align-items: center; gap: 12px; border-bottom: 2px solid #e6dcc8;">
+    <button style="flex: none; width: 50px; height: 50px; border-radius: 50%; border: 2px solid #ddcda9; background: #fff; display: flex; align-items: center; justify-content: center;">
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#8a5a2b" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5 8 12l7 7"/></svg>
+    </button>
+    <h1 style="flex: 1; margin: 0; font-family: 'Nanum Myeongjo', serif; font-size: 25px; font-weight: 800; color: #3d3226;">창구 요약서</h1>
+  </div>
+
+  <!-- 쪽지 -->
+  <div style="margin: 20px 18px; background: #fff; border-radius: 6px; padding: 26px 24px 28px; box-shadow: 0 6px 18px rgba(80,64,40,0.12); position: relative;">
+
+    <p style="margin: 0 0 4px; font-size: 16px; font-weight: 700; color: #a08b6a; letter-spacing: 0.5px;">직원에게 이 화면을 보여주세요</p>
+    <div style="font-family: 'Nanum Myeongjo', serif; font-size: 46px; font-weight: 800; color: #3d3226; letter-spacing: 8px; line-height: 1.2;">482913</div>
+    <p style="margin: 6px 0 0; font-size: 17px; color: #8a7c66;">번호표 12번 · KB국민은행 종로지점</p>
+
+    <div style="height: 2px; background: #e6dcc8; margin: 22px 0;"></div>
+
+    <p style="margin: 0 0 10px; font-family: 'Nanum Myeongjo', serif; font-size: 21px; font-weight: 800; color: #3d3226;">하려던 일</p>
+    <p style="margin: 0 0 6px; font-size: 20px; line-height: 1.65; color: #3d3226;">
+      <b>아들 김철수</b> 님에게<br>
+      <b style="font-size: 24px;">200,000원</b> 보내기
+    </p>
+    <p style="margin: 0; font-size: 17px; color: #8a7c66;">KB국민은행 9876-54-****98</p>
+
+    <div style="height: 2px; background: #e6dcc8; margin: 22px 0;"></div>
+
+    <p style="margin: 0 0 10px; font-family: 'Nanum Myeongjo', serif; font-size: 21px; font-weight: 800; color: #3d3226;">여쭤볼 것</p>
+    <p style="margin: 0; font-size: 20px; line-height: 1.65; color: #3d3226;">'대한정보통신' 19,000원<br>오늘 출금이 무엇인지</p>
+
+    <div style="height: 2px; background: #e6dcc8; margin: 22px 0;"></div>
+
+    <p style="margin: 0 0 10px; font-family: 'Nanum Myeongjo', serif; font-size: 21px; font-weight: 800; color: #3d3226;">가져가실 것</p>
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <p style="margin: 0; font-size: 20px; color: #3d3226;">· <b>신분증</b> (꼭 필요해요)</p>
+      <p style="margin: 0; font-size: 20px; color: #6b5f4d;">· 통장 또는 카드</p>
+    </div>
+  </div>
+
+  <div style="padding: 0 22px 26px;">
+    <p style="margin: 0; text-align: center; font-size: 17px; line-height: 1.6; color: #8a7c66;">이체는 창구에서 직원이 도와드려요.</p>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>
