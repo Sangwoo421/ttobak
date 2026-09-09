@@ -14,6 +14,9 @@ import { useBranchTicketStore } from '@/stores/branchTicket'
 
 // 시연 4단계: 창구 요약서. GET /api/summaries/{id} + 3초마다 status 폴링.
 // DONE 이 되면 "창구에서 처리됐어요. 수고하셨어요." 를 보여주고 TTS 로 한 번 읽는다.
+//
+// 시각 규칙(design/A_Summary.dc.html · A안 마감본): 맨 위 검정 카드에 6자리 코드를 칸으로 나눠
+// 직원이 한 번에 읽게 한다. 아래는 회색 라벨 + 흰 카드 세 구획(하려던 일·여쭤볼 것·가져가실 것).
 const DONE_TEXT = '창구에서 처리됐어요. 수고하셨어요.'
 const POLL_MS = 3000
 
@@ -32,6 +35,7 @@ const progressPercent = computed(() => {
   if (!status.value?.total_count) return 0
   return Math.min(100, Math.round((status.value.handled_count / status.value.total_count) * 100))
 })
+const codeDigits = computed(() => String(summary.value?.code || '').split(''))
 let timer = null
 let polling = false
 let active = true
@@ -124,16 +128,18 @@ onUnmounted(() => {
 
 <template>
   <SeniorShell title="창구 요약서">
-    <ToneFrame class="summary-tone" :tone="done ? 'friendly' : 'confirm'">
+    <template #right>
+      <span class="staff-tag">직원용</span>
+    </template>
+
+    <!-- 요약서는 확인 단계가 아니라 결과다. confirm 톤의 굵은 틀은 대화 화면에만 남긴다. -->
+    <ToneFrame tone="friendly">
       <div class="page">
         <div v-if="done" class="done" role="status" aria-live="assertive">
+          <span class="done-check" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5" /></svg>
+          </span>
           <p>{{ DONE_TEXT }}</p>
-        </div>
-        <div v-else class="visit-guide">
-          <div>
-            <p class="guide-label">은행에 도착하면</p>
-            <p class="lead">이 화면을 직원에게 보여주세요</p>
-          </div>
         </div>
 
         <div v-if="error" class="error-box" role="alert">
@@ -141,9 +147,30 @@ onUnmounted(() => {
           <BigButton kind="secondary" @click="load">다시 불러오기</BigButton>
         </div>
 
-        <SummaryCard v-if="summary" :summary="summary" size="senior" />
+        <!-- 코드 카드: 직원에게 보여줄 것 하나. 이 화면에서 가장 진한 면. -->
+        <section v-if="summary" class="code-card" aria-label="창구 요약서 번호">
+          <div class="code-head">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3" /><path d="M7 9h4" /><path d="M7 13h10" /></svg>
+            <p>직원에게 이 번호를 보여주세요</p>
+          </div>
+          <div class="code-digits num" :aria-label="`요약서 번호 ${summary.code}`">
+            <span v-for="(d, i) in codeDigits" :key="i">{{ d }}</span>
+          </div>
+          <div class="code-meta">
+            <div>
+              <p class="meta-label">번호표</p>
+              <span class="ticket-chip num">{{ summary.ticket_no }}번</span>
+            </div>
+            <div>
+              <p class="meta-label">지점</p>
+              <p class="meta-value">{{ summary.branch_name }}</p>
+            </div>
+          </div>
+        </section>
 
-        <div v-if="status" class="progress-card" :class="{ complete: done }" role="status">
+        <SummaryCard v-if="summary" :summary="summary" size="senior" :show-header="false" />
+
+        <section v-if="status" class="progress-card" :class="{ complete: done }" role="status">
           <div class="progress-head">
             <span>창구 처리 상태</span>
             <strong>{{ statusLabel(status.status) }}</strong>
@@ -158,13 +185,18 @@ onUnmounted(() => {
           >
             <span :style="{ width: `${progressPercent}%` }" />
           </div>
-          <p>할 일 {{ status.total_count }}개 중 {{ status.handled_count }}개 처리됐어요</p>
-        </div>
+          <p class="num">할 일 {{ status.total_count }}개 중 {{ status.handled_count }}개 처리됐어요</p>
+        </section>
+
+        <p class="foot-note">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>
+          이체는 앱이 아니라 창구에서 직원이 도와드려요
+        </p>
 
         <div class="buttons">
           <BigButton kind="primary" @click="chooseBranch">지점·대기표 선택</BigButton>
           <BigButton kind="secondary" @click="replay">안내 다시 듣기</BigButton>
-          <BigButton kind="secondary" @click="goHome">어르신 모드 홈</BigButton>
+          <BigButton kind="secondary" @click="goHome">간편 모드 홈</BigButton>
         </div>
       </div>
     </ToneFrame>
@@ -176,59 +208,164 @@ onUnmounted(() => {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 18px 14px 20px;
+  gap: 20px;
+  padding: 6px 18px 24px;
 }
 
-.visit-guide {
-  display: block;
-  padding: 16px;
-  border: 2px solid #d9b238;
-  border-radius: 20px;
-  background: #fff;
+.num { font-variant-numeric: tabular-nums; }
+
+.staff-tag {
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: var(--paper, #f3f2ee);
+  color: var(--ink-3, #85817a);
+  font-size: 13px;
+  font-weight: 700;
 }
 
-.guide-label {
-  margin: 0 0 2px;
-  color: #6b6458;
-  font-size: 17px;
-  font-weight: 800;
+/* ------------------------------------------------------------ 코드 카드 */
+.code-card {
+  margin: 8px 0 2px;
+  padding: 24px 22px 22px;
+  border-radius: 24px;
+  background: var(--ink, #17161a);
+  color: #fff;
+  box-shadow: 0 14px 34px rgba(23, 22, 26, 0.22);
 }
 
-.lead {
+.code-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.code-head svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: var(--kb-yellow, #ffbc00);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.code-head p {
   margin: 0;
-  color: #2b2620;
-  font-size: 23px;
-  font-weight: 900;
-  line-height: 1.35;
+  font-size: 15px;
+  font-weight: 700;
+  color: #cfcbc1;
+}
+
+.code-digits {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.code-digits span {
+  height: 62px;
+  border-radius: 14px;
+  background: #2a2925;
+  color: #fff;
+  font-size: 34px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.code-meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid #333029;
+}
+
+.code-meta > div {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.meta-label {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #8f8a7f;
+}
+
+.meta-value {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.4;
   word-break: keep-all;
 }
 
+.ticket-chip {
+  align-self: flex-start;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: var(--kb-yellow, #ffbc00);
+  color: var(--ink, #17161a);
+  font-size: 18px;
+  font-weight: 800;
+}
+
+/* ------------------------------------------------------------ 완료 */
 .done {
-  background: linear-gradient(145deg, #edf9f0, #fff);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 8px;
+  padding: 18px 20px;
+  border-radius: 20px;
+  background: var(--ok-bg);
   color: var(--ok);
-  border: 3px solid #76bf88;
-  border-radius: 22px;
-  padding: 22px 18px;
-  text-align: center;
-  font-size: var(--senior-font-lg);
-  font-weight: 900;
+  font-size: var(--senior-font);
+  font-weight: 800;
+  line-height: 1.4;
+  word-break: keep-all;
 }
 
-.done p {
-  margin: 0;
+.done p { margin: 0; }
+
+.done-check {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--ok);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
+.done-check svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: #fff;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ------------------------------------------------------------ 처리 상태 */
 .progress-card {
-  padding: 16px 18px;
-  border: 2px solid #ded8c9;
-  border-radius: 18px;
+  padding: 18px 22px 20px;
+  border: 1px solid var(--card-line, #e9e6df);
+  border-radius: 20px;
   background: #fff;
-  box-shadow: 0 5px 18px rgba(67, 52, 16, 0.08);
+  box-shadow: var(--soft, 0 1px 2px rgba(23, 22, 26, 0.04), 0 8px 24px rgba(23, 22, 26, 0.05));
 }
 
 .progress-card.complete {
-  border-color: #76bf88;
+  border-color: #cfe6d5;
   background: #f5fbf6;
 }
 
@@ -237,32 +374,38 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  font-size: 20px;
-  font-weight: 800;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ink-3, #85817a);
 }
 
 .progress-head strong {
-  color: #665219;
+  color: var(--warn, #8a5a00);
+  background: var(--warn-bg, #fff4d1);
+  padding: 4px 11px;
+  border-radius: 999px;
+  font-size: 14px;
   white-space: nowrap;
 }
 
 .progress-card.complete .progress-head strong {
   color: var(--ok);
+  background: var(--ok-bg);
 }
 
 .progress-track {
-  height: 12px;
-  margin-top: 12px;
+  height: 10px;
+  margin-top: 14px;
   overflow: hidden;
   border-radius: 999px;
-  background: #ece9df;
+  background: var(--paper, #f3f2ee);
 }
 
 .progress-track span {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: #d4a300;
+  background: var(--kb-yellow, #ffbc00);
   transition: width 0.3s ease;
 }
 
@@ -271,10 +414,34 @@ onUnmounted(() => {
 }
 
 .progress-card p {
-  margin: 8px 0 0;
-  color: var(--muted);
+  margin: 10px 0 0;
+  color: var(--ink, #17161a);
   font-size: 18px;
   font-weight: 700;
+}
+
+.foot-note {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin: 0;
+  color: var(--ink-4, #9a968c);
+  font-size: 15px;
+  font-weight: 600;
+  text-align: center;
+  word-break: keep-all;
+}
+
+.foot-note svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .buttons {
@@ -285,12 +452,9 @@ onUnmounted(() => {
 }
 
 @media (max-width: 360px) {
-  .visit-guide {
-    padding: 14px;
-  }
-
-  .lead {
-    font-size: 22px;
+  .code-digits span {
+    height: 54px;
+    font-size: 28px;
   }
 }
 </style>

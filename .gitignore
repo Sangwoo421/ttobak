@@ -43,7 +43,13 @@ Thumbs.db
 !docs/assets/**
 
 # AI 코딩 규칙 파일은 로컬 전용 (팀 결정)
+AGENTS.md
+**/AGENTS.md
 CLAUDE.md
 **/CLAUDE.md
 .claude/
 tools/.logs/
+
+# 디자인 시안 작업 파일 (아트보드 원본은 남기고 씨앗 결과물만 제외)
+design/*.html
+!design/*.dc.html
