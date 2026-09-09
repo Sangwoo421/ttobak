@@ -5,6 +5,8 @@ import { won } from '@/utils/format'
 import { useAudioPlayer } from '@/composables/useAudioPlayer'
 import SeniorHome from './SeniorHome.vue'
 import { useAppModeStore } from '@/stores/appMode'
+import { useAuthStore } from '@/stores/auth'
+import { useSessionStore } from '@/stores/session'
 
 // KB스타뱅킹 느낌의 정적 홈 목업. 위쪽 푸시 알림 배너를 누르면 어르신 모드 브리핑으로 들어간다.
 // 어르신 모드는 앱의 모드다(appMode 스토어). 화면을 옮겨 다니거나 새로고침해도 유지된다.
@@ -19,10 +21,10 @@ const recent = [
   { id: 103, title: '대한정보통신', sub: '오늘 09:10 · 자동이체', amount: 19000, type: 'OUT' },
 ]
 const quick = [
-  { icon: '↗', label: '이체' },
-  { icon: '≡', label: '조회' },
-  { icon: '▭', label: '카드' },
-  { icon: '⋯', label: '더보기' },
+  { label: '이체' },
+  { label: '조회' },
+  { label: '카드' },
+  { label: '대기표', path: '/branch-ticket' },
 ]
 const tabs = ['홈', '자산', '상품', '혜택', '전체']
 
@@ -35,13 +37,40 @@ function openBriefing() {
 // (중간에 있던 "또박또박 챗봇" 진입 버튼은 카드형 UI 라 은행 홈 레이아웃을 깼어서 없앴다 -
 //  어르신 모드 진입은 상단 버튼 하나로 통일한다.)
 const appMode = useAppModeStore()
+const auth = useAuthStore()
+const session = useSessionStore()
+
+function openSummary() {
+  if (!session.latest_summary_id) {
+    outOfScope('아직 정리된 창구 요약서가 없어요. 말로 물어보기에서 창구 갈 일을 먼저 정리해 주세요.')
+    return
+  }
+  player.unlock()
+  router.push(`/senior/summary/${session.latest_summary_id}`)
+}
+
+function openQuick(item) {
+  if (item.path) {
+    player.unlock()
+    router.push(item.path)
+    return
+  }
+  outOfScope(item.label)
+}
+
+async function logout() {
+  await auth.logout()
+  router.replace('/login')
+}
 
 // 이체·조회·카드처럼 기존 앱이 이미 하는 일은 만들지 않는다(기획서 "적용 형태").
 // 다만 아무 반응이 없으면 덜 만든 것처럼 보이므로, 경계라는 사실을 화면이 직접 말한다.
 const notice = ref('')
 let noticeTimer = null
 function outOfScope(label) {
-  notice.value = `${label}는 기존 KB스타뱅킹 기능이라 이번 프로토타입에서는 만들지 않았어요.`
+  notice.value = label.includes('요약서')
+    ? label
+    : `${label}는 기존 KB스타뱅킹 기능이라 이번 프로토타입에서는 만들지 않았어요.`
   clearTimeout(noticeTimer)
   noticeTimer = setTimeout(() => { notice.value = '' }, 2600)
 }
@@ -62,17 +91,20 @@ function outOfScope(label) {
     </button>
 
     <header class="kb-top">
-      <span class="logo"><span class="star">★</span>KB스타뱅킹</span>
-      <button type="button" class="senior-toggle" @click="appMode.enable()">
-        <svg class="senior-toggle-icon" viewBox="0 0 24 24" aria-hidden="true">
-          <circle cx="16" cy="4" r="1" />
-          <path d="m18 19 1-7-6 1" />
-          <path d="m5 8 3-3 5.5 3-2.36 3.5" />
-          <path d="M4.24 14.5a5 5 0 0 0 6.88 6" />
-          <path d="M13.76 17.5a5 5 0 0 0-6.88-6" />
-        </svg>
-        <span>어르신 모드</span>
-      </button>
+      <span class="logo">KB스타뱅킹</span>
+      <span class="header-actions">
+        <button type="button" class="senior-toggle" @click="appMode.enable()">
+          <svg class="senior-toggle-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="16" cy="4" r="1" />
+            <path d="m18 19 1-7-6 1" />
+            <path d="m5 8 3-3 5.5 3-2.36 3.5" />
+            <path d="M4.24 14.5a5 5 0 0 0 6.88 6" />
+            <path d="M13.76 17.5a5 5 0 0 0-6.88-6" />
+          </svg>
+          <span>어르신 모드</span>
+        </button>
+        <button type="button" class="logout" @click="logout">로그아웃</button>
+      </span>
     </header>
 
     <section class="balance">
@@ -86,11 +118,18 @@ function outOfScope(label) {
     </section>
 
     <section class="quick">
-      <button v-for="q in quick" :key="q.label" type="button" class="quick-btn" @click="outOfScope(q.label)">
-        <span class="q-icon">{{ q.icon }}</span>
+      <button v-for="q in quick" :key="q.label" type="button" class="quick-btn" @click="openQuick(q)">
         <span>{{ q.label }}</span>
       </button>
     </section>
+
+    <button type="button" class="summary-shortcut" @click="openSummary">
+      <span>
+        <b>창구 요약서</b>
+        <small>{{ session.latest_summary_id ? '정리해 둔 창구 업무 다시 보기' : '말로 정리한 창구 업무를 확인해요' }}</small>
+      </span>
+      <span class="summary-arrow" aria-hidden="true">›</span>
+    </button>
 
     <section class="recent">
       <h3>최근 거래</h3>
@@ -207,9 +246,20 @@ function outOfScope(label) {
   color: var(--kb-brown);
 }
 
-.star {
-  color: var(--kb-yellow);
-  margin-right: 4px;
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.logout {
+  min-height: 40px;
+  padding: 0 10px;
+  border: 0;
+  background: transparent;
+  color: #756d61;
+  font-size: 13px;
+  font-weight: 800;
 }
 
 .balance {
@@ -263,26 +313,50 @@ function outOfScope(label) {
   background: #fff;
   border: 1px solid #eee;
   border-radius: 14px;
+  min-height: 58px;
   padding: 12px 4px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
   font-size: 13px;
   font-weight: 700;
   color: #333;
 }
 
-.q-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: var(--kb-yellow-soft);
-  color: var(--kb-brown);
+.summary-shortcut {
+  min-height: 72px;
+  margin: 2px 16px 8px;
+  padding: 14px 16px;
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-size: 18px;
+  justify-content: space-between;
+  gap: 12px;
+  border: 2px solid #d4a300;
+  border-radius: 16px;
+  background: #fff;
+  color: #2b2620;
+  text-align: left;
+}
+
+.summary-shortcut span:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.summary-shortcut b {
+  font-size: 17px;
+}
+
+.summary-shortcut small {
+  color: #6b6458;
+  font-size: 13px;
+}
+
+.summary-arrow {
+  color: #8a6a00;
+  font-size: 32px;
+  line-height: 1;
 }
 
 .recent {
@@ -389,6 +463,17 @@ function outOfScope(label) {
 }
 .senior-toggle:active { background: #ffe5a3; }
 
+@media (max-width: 380px) {
+  .kb-top {
+    align-items: flex-start;
+  }
+
+  .header-actions {
+    flex-direction: column;
+    align-items: flex-end;
+  }
+}
+
 /* 만들지 않은 기존 앱 기능을 눌렀을 때. 침묵보다 경계를 밝히는 편이 낫다. */
 .scope-notice {
   position: sticky;
@@ -397,8 +482,9 @@ function outOfScope(label) {
   margin: 0 16px -46px; /* 탭바 위에 떠 보이되 레이아웃을 밀지 않는다 */
   padding: 14px 16px;
   border-radius: 12px;
-  background: rgba(27, 27, 27, 0.92);
-  color: #fff;
+  background: #fff;
+  color: #2b2620;
+  border: 2px solid #d4a300;
   font-size: 15px;
   line-height: 1.45;
   text-align: center;

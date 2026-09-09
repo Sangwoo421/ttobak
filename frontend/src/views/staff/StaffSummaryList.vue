@@ -37,7 +37,7 @@ watch(filter, load)
 <template>
   <div class="staff staff-mobile">
     <header class="app-bar">
-      <router-link to="/staff" class="icon-button" aria-label="코드 입력 화면으로 돌아가기">‹</router-link>
+      <router-link to="/staff" class="icon-button" aria-label="창구 홈으로 돌아가기">‹</router-link>
       <div class="app-title">
         <span class="eyebrow">또박또박 직원</span>
         <h1>요약서 목록</h1>
@@ -61,7 +61,6 @@ watch(filter, load)
     <p class="result-count">{{ loading ? '불러오는 중…' : `요약서 ${rows.length}건` }}</p>
 
     <div v-if="!loading && !rows.length" class="empty-state">
-      <div class="empty-icon">✓</div>
       <strong>표시할 요약서가 없습니다</strong>
       <span>다른 처리 상태를 선택해 보세요.</span>
     </div>
@@ -75,10 +74,6 @@ watch(filter, load)
         <span class="customer-line">
           <strong>{{ r.user_name }} 고객님</strong>
           <span class="chevron" aria-hidden="true">›</span>
-        </span>
-        <span class="code-line">
-          <span>창구 코드</span>
-          <b class="mono">{{ r.code }}</b>
         </span>
         <span class="item-meta">
           <span>{{ dateTime(r.created_at) }}</span>
@@ -187,9 +182,9 @@ watch(filter, load)
 }
 
 .filters button.active {
-  border-color: #26364f;
-  background: #26364f;
-  color: #fff;
+  border: 2px solid #d4a300;
+  background: #fff;
+  color: #2b2620;
 }
 
 .result-count {
@@ -211,12 +206,12 @@ watch(filter, load)
   flex-direction: column;
   gap: 10px;
   padding: 18px;
-  border: 0;
+  border: 2px solid #d4a300;
   border-radius: 15px;
-  background: linear-gradient(150deg, #26364f 0%, #324963 52%, #405a78 100%);
-  color: #fff;
+  background: #fff;
+  color: #2b2620;
   text-align: left;
-  box-shadow: 0 10px 24px rgba(25, 43, 65, 0.19);
+  box-shadow: 0 10px 24px rgba(69, 58, 25, 0.1);
 }
 
 .summary-item:active {
@@ -224,13 +219,12 @@ watch(filter, load)
 }
 
 .summary-item:focus-visible {
-  outline: 3px solid rgba(64, 90, 120, 0.35);
+  outline: 3px solid rgba(212, 163, 0, 0.45);
   outline-offset: 3px;
 }
 
 .item-top,
 .customer-line,
-.code-line,
 .item-meta {
   display: flex;
   align-items: center;
@@ -239,49 +233,29 @@ watch(filter, load)
 }
 
 .ticket {
-  color: rgba(255, 255, 255, 0.72);
+  color: #6b6458;
   font-size: 14px;
 }
 
 .ticket b {
-  color: #fff;
+  color: #2b2620;
   font-size: 18px;
 }
 
 .customer-line strong {
   font-size: 20px;
-  color: #fff;
+  color: #2b2620;
 }
 
 .chevron {
-  color: #8fe3d3;
+  color: #8a6a00;
   font-size: 30px;
   line-height: 1;
 }
 
-.code-line {
-  justify-content: flex-start;
-  padding: 12px 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.18);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 0;
-  background: transparent;
-  color: rgba(255, 255, 255, 0.72);
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.code-line .mono {
-  margin-left: auto;
-  color: #8fe3d3;
-  font-family: ui-monospace, Consolas, monospace;
-  font-size: 20px;
-  letter-spacing: 0.12em;
-}
-
 .item-meta {
   padding-top: 2px;
-  color: rgba(255, 255, 255, 0.65);
+  color: #7a7469;
   font-size: 12px;
 }
 

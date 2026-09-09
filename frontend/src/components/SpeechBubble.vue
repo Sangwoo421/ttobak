@@ -52,7 +52,8 @@ defineProps({
   justify-content: center;
   border-radius: 50%;
   background: var(--kb-yellow);
-  color: #1b1b1b;
+  color: #2b2620;
+  border: 2px solid #d4a300;
   font-size: 22px;
   font-weight: 900;
   box-shadow: var(--shadow);

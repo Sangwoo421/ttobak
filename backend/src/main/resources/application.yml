@@ -31,3 +31,8 @@ springdoc:
 logging:
   level:
     com.ttobak.backend: INFO
+
+ttobak:
+  auth:
+    demo-pin: ${DEMO_SIMPLE_PIN:123456}
+    session-minutes: ${AUTH_SESSION_MINUTES:30}

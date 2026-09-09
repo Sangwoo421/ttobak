@@ -27,17 +27,18 @@ defineProps({
 
 .tone-frame.tone-confirm {
   background: var(--confirm-bg);
-  border: 8px solid var(--confirm-border);
+  border: 4px solid var(--confirm-border);
   color: var(--confirm-text);
 }
 
 .confirm-label {
-  background: var(--confirm-border);
-  color: #fff;
+  background: #fff;
+  color: var(--confirm-text);
+  border-bottom: 3px solid #d4a300;
   text-align: center;
   font-weight: 900;
   font-size: 22px;
-  padding: 6px;
+  padding: 9px 8px;
   letter-spacing: 0.06em;
 }
 </style>

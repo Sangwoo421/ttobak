@@ -18,9 +18,9 @@
   --danger: #d93025;
 
   /* 톤: confirm 이면 배경·테두리를 바꾼다 (senior-mode-policy §3) */
-  --confirm-bg: #fff1d6;
-  --confirm-border: #c2410c;
-  --confirm-text: #4a1d00;
+  --confirm-bg: #fffaf0;
+  --confirm-border: #806100;
+  --confirm-text: #302812;
 
   --ok: #1e8e3e;
   --ok-bg: #e6f4ea;

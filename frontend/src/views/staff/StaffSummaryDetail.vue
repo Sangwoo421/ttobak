@@ -56,10 +56,6 @@ onMounted(load)
         </div>
         <p class="card-guide">고객님의 방문 업무를 확인해 주세요.</p>
         <h2>{{ summary.user_name }} 고객님</h2>
-        <div class="code-box">
-          <span>창구 확인 코드</span>
-          <strong class="mono">{{ summary.code }}</strong>
-        </div>
         <dl class="summary-meta">
           <div>
             <dt>접수 시각</dt>
@@ -81,7 +77,7 @@ onMounted(load)
         </ol>
       </details>
 
-      <SummaryCard :summary="summary" size="staff" :show-code="false" checkable @toggle="onToggle" />
+      <SummaryCard :summary="summary" size="staff" :show-header="false" checkable @toggle="onToggle" />
     </template>
   </div>
 </template>
@@ -154,11 +150,11 @@ onMounted(load)
 .customer-card {
   margin: 0 16px 18px;
   padding: 20px;
-  border: 0;
+  border: 2px solid #d4a300;
   border-radius: 15px;
-  background: linear-gradient(150deg, #26364f 0%, #324963 52%, #405a78 100%);
-  box-shadow: 0 12px 28px rgba(25, 43, 65, 0.22);
-  color: #fff;
+  background: #fff;
+  box-shadow: 0 12px 28px rgba(69, 58, 25, 0.1);
+  color: #2b2620;
 }
 
 .customer-top {
@@ -169,19 +165,19 @@ onMounted(load)
 }
 
 .ticket {
-  color: rgba(255, 255, 255, 0.78);
+  color: #6b6458;
   font-size: 14px;
 }
 
 .ticket b {
-  color: #fff;
+  color: #2b2620;
   font-size: 20px;
 }
 
 .customer-card .status-badge {
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  background: rgba(255, 255, 255, 0.18);
-  color: #fff;
+  border: 1px solid #d4a300;
+  background: #fff;
+  color: #5d4a12;
 }
 
 .customer-card .status-badge.DONE {
@@ -192,7 +188,7 @@ onMounted(load)
 
 .card-guide {
   margin: 23px 0 6px;
-  color: #b8d8df;
+  color: #6b6458;
   font-size: 13px;
   font-weight: 700;
 }
@@ -201,29 +197,6 @@ onMounted(load)
   margin: 0 0 18px;
   font-size: 24px;
   letter-spacing: -0.03em;
-}
-
-.code-box {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 14px 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.22);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.22);
-  border-radius: 0;
-  background: transparent;
-  color: rgba(255, 255, 255, 0.82);
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.code-box .mono {
-  color: #8fe3d3;
-  font-family: ui-monospace, Consolas, monospace;
-  font-size: 28px;
-  letter-spacing: 0.12em;
-  text-shadow: 0 2px 10px rgba(10, 24, 40, 0.24);
 }
 
 .summary-meta {
@@ -240,7 +213,7 @@ onMounted(load)
 }
 
 .summary-meta dt {
-  color: rgba(255, 255, 255, 0.68);
+  color: #7a7469;
   font-size: 13px;
   font-weight: 600;
 }
@@ -250,7 +223,7 @@ onMounted(load)
   overflow-wrap: anywhere;
   font-size: 13px;
   font-weight: 700;
-  color: #fff;
+  color: #2b2620;
 }
 
 .help {

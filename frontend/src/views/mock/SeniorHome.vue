@@ -6,6 +6,7 @@ import { getTransactions } from '@/api/backend'
 import { seniorErrorMessage } from '@/api/http'
 import { useAudioPlayer } from '@/composables/useAudioPlayer'
 import LevelBadge from '@/components/LevelBadge.vue'
+import { useSessionStore } from '@/stores/session'
 
 // 어르신 모드 홈. 일반 모드와 같은 데이터를 쓰지만 바뀌는 것은 글씨 크기만이 아니다.
 //  - 거래 한 줄이 통째로 버튼이고, 누르면 그 건을 음성으로 읽고 바로 대화가 이어진다
@@ -17,10 +18,13 @@ const emit = defineEmits(['exit'])
 
 const router = useRouter()
 const player = useAudioPlayer()
+const session = useSessionStore()
 
 const items = ref([])
 const loading = ref(true)
 const error = ref('')
+const transferNotice = ref('')
+const listSection = ref(null)
 
 onMounted(async () => {
   try {
@@ -40,10 +44,25 @@ function go(path, query) {
 const openBriefing = () => go('/senior/briefing')
 // 「말로 물어보기」: 대화 화면으로 이동만 한다. 녹음은 사용자가 마이크를 눌러야 시작된다 (SeniorChat 이 처리).
 const openChat = () => go('/senior/chat', { start: 'true' })
-// 「창구 갈 일 정리」: 요약서를 보러 가는 버튼. 세션을 새로 시작하지 않는다(start 없음) —
-// 담아 둔 항목이 있으면 그대로 요약서로, 없으면 안내만. 이 경로로는 녹음이 시작되지 않는다.
-const openCounter = () => go('/senior/chat', { counter: 'true' })
+const openCounter = () => go('/branch-ticket')
 const readOne = (it) => go('/senior/chat', { tx: String(it.transaction.id) })
+
+function openSummary() {
+  if (!session.latest_summary_id) {
+    transferNotice.value = '아직 정리한 창구 요약서가 없어요. 말로 물어보기에서 창구 갈 일을 먼저 정리해 주세요.'
+    return
+  }
+  go(`/senior/summary/${session.latest_summary_id}`)
+}
+
+function openTransfer() {
+  transferNotice.value = '이체는 안전을 위해 기존 KB스타뱅킹 이체 화면에서 이용해 주세요.'
+}
+
+function openHistory() {
+  transferNotice.value = ''
+  listSection.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
 
 function when(tx) {
   const d = new Date(tx.occurred_at)
@@ -62,32 +81,39 @@ function when(tx) {
     <header class="s-top">
       <div>
         <div class="s-mode">어르신 모드</div>
-        <div class="s-name">{{ account.name }}</div>
+        <div class="s-name">내 계좌</div>
       </div>
       <button type="button" class="s-off" @click="emit('exit')">모드 끄기</button>
     </header>
 
     <section class="s-balance">
-      <div class="s-label">지금 남은 돈</div>
+      <div class="s-account-name">{{ account.name }}</div>
+      <div class="s-account-number">{{ account.number }}</div>
       <div class="s-amount">{{ won(account.balance) }}</div>
+      <div class="s-balance-actions">
+        <button type="button" @click="openTransfer">이체</button>
+        <button type="button" @click="openHistory">내역</button>
+      </div>
     </section>
 
+    <p v-if="transferNotice" class="s-notice" role="status">{{ transferNotice }}</p>
+
     <section class="s-actions">
+      <button type="button" class="s-act summary" @click="openSummary">
+        <span class="txt"><b>창구 요약서 보기</b><small>정리해 둔 창구 업무를 다시 확인해요</small></span>
+      </button>
       <button type="button" class="s-act primary" @click="openBriefing">
-        <span class="ico">🔊</span>
         <span class="txt"><b>들어오고 나간 돈 듣기</b><small>최근 것부터 읽어드려요</small></span>
       </button>
       <button type="button" class="s-act" @click="openChat">
-        <span class="ico">🎤</span>
         <span class="txt"><b>말로 물어보기</b><small>궁금한 걸 그냥 말씀하세요</small></span>
       </button>
       <button type="button" class="s-act" @click="openCounter">
-        <span class="ico">🏦</span>
-        <span class="txt"><b>창구 갈 일 정리</b><small>은행에서 할 일을 미리 적어드려요</small></span>
+        <span class="txt"><b>지점·대기표 선택</b><small>갈 은행을 고르고 번호표를 받아요</small></span>
       </button>
     </section>
 
-    <section class="s-list">
+    <section ref="listSection" class="s-list">
       <h3>들어오고 나간 돈</h3>
       <p class="s-help">궁금한 줄을 누르면 읽어드려요</p>
 
@@ -114,7 +140,6 @@ function when(tx) {
           <span class="s-amt" :class="it.transaction.type">
             {{ it.transaction.type === 'IN' ? '+' : '-' }}{{ won(it.transaction.amount) }}
           </span>
-          <span class="s-speaker" aria-hidden="true">🔊</span>
         </span>
       </button>
     </section>
@@ -123,7 +148,9 @@ function when(tx) {
 
 <style scoped>
 .senior-home {
-  background: #fffdf5;
+  --warn-bg: #efede7;
+  --warn: #665c4c;
+  background: #f5f5f3;
   min-height: 100%;
   padding-bottom: 28px;
   display: flex;
@@ -134,53 +161,96 @@ function when(tx) {
 .s-top {
   display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
   padding: 20px 18px 10px;
-  background: linear-gradient(180deg, #ffc61a 0%, #ffbc00 100%);
+  background: #fff;
+  border-bottom: 3px solid #ffbc00;
 }
 .s-mode {
-  display: inline-block; font-size: 14px; font-weight: 800; color: #6b4e00;
-  background: rgba(255, 255, 255, 0.6); border-radius: 999px; padding: 3px 10px;
+  display: inline-block; font-size: 14px; font-weight: 800; color: #5d4a12;
+  background: #fff; border: 2px solid #e1b52e; border-radius: 999px; padding: 3px 10px;
 }
-.s-name { font-size: 25px; font-weight: 900; color: #1b1b1b; margin-top: 6px; letter-spacing: -0.4px; }
+.s-name { font-size: 25px; font-weight: 900; color: #2b2620; margin-top: 6px; letter-spacing: -0.4px; }
 .s-off {
   flex: none; min-height: 46px; padding: 0 15px;
-  border: 2px solid rgba(107, 78, 0, 0.55); border-radius: 999px;
-  background: rgba(255, 255, 255, 0.85);
-  font-size: 16px; font-weight: 800; color: #6b4e00; cursor: pointer;
+  border: 2px solid #c8c0b1; border-radius: 999px;
+  background: #fff;
+  font-size: 16px; font-weight: 800; color: #4f493f; cursor: pointer;
 }
-.s-off:active { background: #fff; }
+.s-off:active { background: #efede7; }
 
 .s-balance {
-  padding: 4px 18px 24px;
-  background: linear-gradient(180deg, #ffbc00 0%, #ffb800 100%);
+  margin: 16px 16px 4px;
+  padding: 20px;
+  background: var(--kb-yellow);
+  border: 2px solid #d6a100;
+  border-radius: 20px;
+  box-shadow: 0 8px 22px rgba(97, 75, 0, 0.16);
 }
-.s-label { font-size: 18px; font-weight: 800; color: #6b4e00; }
+.s-account-name {
+  color: #332c20;
+  font-size: 20px;
+  font-weight: 900;
+}
+.s-account-number {
+  margin-top: 2px;
+  color: #64531d;
+  font-size: 16px;
+  font-weight: 700;
+}
 .s-amount {
-  font-size: 42px; font-weight: 900; letter-spacing: -1.5px; margin-top: 2px;
-  color: #1b1b1b; line-height: 1.1;
+  font-size: 42px; font-weight: 900; letter-spacing: -1.5px; margin-top: 18px;
+  color: #2b2620; line-height: 1.1;
+}
+.s-balance-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 20px;
+}
+.s-balance-actions button {
+  min-height: 72px;
+  border: 2px solid rgba(83, 64, 0, 0.2);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.78);
+  color: #2b2620;
+  font-size: 22px;
+  font-weight: 900;
+}
+.s-balance-actions button:active { background: #fff; }
+.s-balance-actions button:focus-visible {
+  outline: 5px solid #5f543e;
+  outline-offset: 2px;
+}
+.s-notice {
+  margin: 12px 16px 0;
+  padding: 14px 16px;
+  border: 2px solid #c8c0b1;
+  border-radius: 14px;
+  background: #fff;
+  color: #4f493f;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.45;
+  word-break: keep-all;
 }
 
-/* 카드가 잔액 위로 살짝 올라타 보이게 해서 화면에 깊이를 준다 */
+/* 메뉴는 잔액 영역과 겹치지 않게 분리해 각 영역의 경계를 또렷하게 보여준다. */
 .s-actions {
-  display: grid; gap: 12px; padding: 0 16px;
-  margin-top: -14px; position: relative; z-index: 1;
+  display: grid; grid-auto-rows: 1fr; gap: 12px; padding: 0 16px;
+  margin-top: 16px; position: relative; z-index: 1;
 }
 .s-act {
-  display: flex; align-items: center; gap: 14px; width: 100%;
-  min-height: 84px; padding: 14px 16px; text-align: left;
-  border: 2px solid #e6dfc9; border-radius: 18px; background: #fff; cursor: pointer;
-  box-shadow: 0 4px 14px rgba(90, 70, 0, 0.1);
+  display: block; width: 100%; height: 100%;
+  min-height: 88px; padding: 14px 16px; text-align: left;
+  border: 2px solid #d9d3c7; border-radius: 18px; background: #fff; cursor: pointer;
+  box-shadow: 0 4px 14px rgba(69, 58, 25, 0.08);
   transition: transform 0.08s ease;
 }
 .s-act:active { transform: scale(0.985); }
-.s-act.primary { border-color: #ffbc00; background: linear-gradient(180deg, #fffaeb 0%, #fff4d1 100%); }
-.s-act .ico {
-  font-size: 26px; flex: none; width: 52px; height: 52px; border-radius: 16px;
-  background: #fff3cd; display: flex; align-items: center; justify-content: center;
-}
-.s-act.primary .ico { background: #ffd766; }
+.s-act.primary { border-color: #d9b238; background: #fff; }
+.s-act.summary { border-color: #d9b238; }
 .s-act .txt { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-.s-act b { font-size: 22px; font-weight: 900; color: #1b1b1b; letter-spacing: -0.3px; }
-.s-act small { font-size: 15px; color: #6b6455; }
+.s-act b { font-size: 22px; font-weight: 900; color: #1b1b1b; letter-spacing: -0.3px; line-height: 1.25; }
+.s-act small { font-size: 15px; color: #6b6455; line-height: 1.35; word-break: keep-all; }
 
 .s-list { padding: 22px 16px 0; }
 .s-list h3 { font-size: 23px; font-weight: 900; margin: 0 0 3px; letter-spacing: -0.4px; }
@@ -191,12 +261,12 @@ function when(tx) {
 .s-row {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   width: 100%; min-height: 82px; padding: 14px 16px; margin-bottom: 10px;
-  border: 2px solid #ece5d2; border-radius: 18px; background: #fff;
+  border: 2px solid #ded9cf; border-radius: 18px; background: #fff;
   text-align: left; cursor: pointer;
-  box-shadow: 0 2px 8px rgba(90, 70, 0, 0.06);
+  box-shadow: 0 2px 8px rgba(69, 58, 25, 0.06);
   transition: transform 0.08s ease, background 0.12s ease;
 }
-.s-row:active { background: #fff8e1; transform: scale(0.99); }
+.s-row:active { background: #f4f2ed; transform: scale(0.99); }
 .s-row-main { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .s-row-name {
   font-size: 20px; font-weight: 900; color: #1b1b1b; letter-spacing: -0.3px;
@@ -207,8 +277,4 @@ function when(tx) {
 .s-amt { font-size: 19px; font-weight: 900; letter-spacing: -0.3px; }
 .s-amt.IN { color: #1558d6; }
 .s-amt.OUT { color: #1b1b1b; }
-.s-speaker {
-  font-size: 20px; width: 42px; height: 42px; border-radius: 50%;
-  background: #fff3cd; display: flex; align-items: center; justify-content: center;
-}
 </style>

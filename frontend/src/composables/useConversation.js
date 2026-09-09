@@ -106,7 +106,10 @@ export function useConversation() {
       switch (action.type) {
         case 'OPEN_SUMMARY': {
           const id = action.payload?.summary_id
-          if (id != null) routerRef?.push(`/senior/summary/${id}`)
+          if (id != null) {
+            session.rememberSummary(id)
+            routerRef?.push(`/senior/summary/${id}`)
+          }
           stopping.value = false
           return
         }

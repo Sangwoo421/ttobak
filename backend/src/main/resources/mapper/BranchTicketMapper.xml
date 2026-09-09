@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ttobak.backend.mapper.BranchTicketMapper">
+
+    <select id="lockUser" resultType="java.lang.Long">
+        SELECT id FROM users WHERE id = #{userId} FOR UPDATE
+    </select>
+
+    <select id="findActiveBranches" resultType="com.ttobak.backend.domain.BankBranch">
+        SELECT id, name, district, address, opening_hours, current_serving_no,
+               last_ticket_no, avg_service_minutes, active
+        FROM bank_branches
+        WHERE active = 1
+        ORDER BY id
+    </select>
+
+    <select id="findBranchByIdForUpdate" resultType="com.ttobak.backend.domain.BankBranch">
+        SELECT id, name, district, address, opening_hours, current_serving_no,
+               last_ticket_no, avg_service_minutes, active
+        FROM bank_branches
+        WHERE id = #{id} AND active = 1
+        FOR UPDATE
+    </select>
+
+    <select id="countWaiting" resultType="int">
+        SELECT COUNT(*)
+        FROM branch_tickets
+        WHERE branch_id = #{branchId} AND status = 'WAITING'
+    </select>
+
+    <select id="countAhead" resultType="int">
+        SELECT COUNT(*)
+        FROM branch_tickets
+        WHERE branch_id = #{branchId}
+          AND status = 'WAITING'
+          AND ticket_no &lt; #{ticketNo}
+    </select>
+
+    <update id="updateLastTicketNo">
+        UPDATE bank_branches
+        SET last_ticket_no = #{ticketNo}
+        WHERE id = #{branchId}
+    </update>
+
+    <insert id="insertTicket" parameterType="com.ttobak.backend.domain.BranchTicketRow"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO branch_tickets (branch_id, user_id, summary_id, ticket_no, purpose, status)
+        VALUES (#{branchId}, #{userId}, #{summaryId}, #{ticketNo}, #{purpose}, #{status})
+    </insert>
+
+    <update id="attachSummary">
+        UPDATE branch_tickets SET summary_id = #{summaryId} WHERE id = #{id}
+    </update>
+
+    <select id="findTicketById" resultType="com.ttobak.backend.domain.BranchTicketRow">
+        SELECT t.id, t.branch_id, t.user_id, t.summary_id, t.ticket_no, t.purpose, t.status,
+               t.issued_at, t.called_at, t.cancelled_at,
+               b.name AS branch_name, b.address AS branch_address,
+               b.current_serving_no, b.avg_service_minutes, s.code AS summary_code
+        FROM branch_tickets t
+        JOIN bank_branches b ON b.id = t.branch_id
+        LEFT JOIN counter_summaries s ON s.id = t.summary_id
+        WHERE t.id = #{id}
+    </select>
+
+    <select id="findActiveTicketByUser" resultType="com.ttobak.backend.domain.BranchTicketRow">
+        SELECT t.id, t.branch_id, t.user_id, t.summary_id, t.ticket_no, t.purpose, t.status,
+               t.issued_at, t.called_at, t.cancelled_at,
+               b.name AS branch_name, b.address AS branch_address,
+               b.current_serving_no, b.avg_service_minutes, s.code AS summary_code
+        FROM branch_tickets t
+        JOIN bank_branches b ON b.id = t.branch_id
+        LEFT JOIN counter_summaries s ON s.id = t.summary_id
+        WHERE t.user_id = #{userId} AND t.status IN ('WAITING', 'CALLED')
+        ORDER BY t.issued_at DESC
+        LIMIT 1
+    </select>
+
+    <update id="cancelTicket">
+        UPDATE branch_tickets
+        SET status = 'CANCELLED', cancelled_at = CURRENT_TIMESTAMP
+        WHERE id = #{id} AND status = 'WAITING'
+    </update>
+
+</mapper>
