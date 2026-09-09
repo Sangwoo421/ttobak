@@ -5,11 +5,14 @@ import { createRouter, createWebHistory } from 'vue-router'
 const routes = [
   { path: '/', redirect: '/mock/home' },
 
-  { path: '/mock/home', component: () => import('@/views/mock/MockHome.vue'), meta: { frame: 'phone' } },
+  { path: '/login', component: () => import('@/views/auth/SimpleLogin.vue'), meta: { frame: 'phone' } },
 
-  { path: '/senior/briefing', component: () => import('@/views/senior/SeniorBriefing.vue'), meta: { frame: 'phone' } },
-  { path: '/senior/chat', component: () => import('@/views/senior/SeniorChat.vue'), meta: { frame: 'phone' } },
-  { path: '/senior/summary/:id', component: () => import('@/views/senior/SeniorSummary.vue'), meta: { frame: 'phone' } },
+  { path: '/mock/home', component: () => import('@/views/mock/MockHome.vue'), meta: { frame: 'phone', requiresAuth: true } },
+
+  { path: '/senior/briefing', component: () => import('@/views/senior/SeniorBriefing.vue'), meta: { frame: 'phone', requiresAuth: true } },
+  { path: '/senior/chat', component: () => import('@/views/senior/SeniorChat.vue'), meta: { frame: 'phone', requiresAuth: true } },
+  { path: '/senior/summary/:id', component: () => import('@/views/senior/SeniorSummary.vue'), meta: { frame: 'phone', requiresAuth: true } },
+  { path: '/branch-ticket', component: () => import('@/views/senior/BranchTicket.vue'), meta: { frame: 'phone', requiresAuth: true } },
 
   // 직원 화면은 폰 프레임을 씌우지 않는다. 창구 단말은 노트북이고, 시연에서 노치 달린
   // 430px 아이폰으로 보이면 "직원은 확인부터 시작합니다"라는 설명과 어긋난다.
