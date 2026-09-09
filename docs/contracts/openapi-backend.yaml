@@ -408,7 +408,7 @@ components:
           example: R1_REGISTERED_PERSON
         spoken_name:
           type: string
-          description: 음성 브리핑용 생활어 상대명. 예 "아드님 김철수 님", "한국전력", "'대한정보통신'이라는 곳"
+          description: 음성 브리핑용 생활어 상대명. 예 "아드님 김철수 님", "한국전력", "'국민라이프'이라는 곳"
         facts:
           type: array
           description: 앱이 확실히 아는 사실. LLM 은 이 밖의 정보를 말하면 안 된다.
@@ -488,7 +488,7 @@ components:
       required: [text]
       properties:
         transaction_id: { type: integer, nullable: true }
-        text: { type: string, example: "'대한정보통신' 19,000원 출금이 무엇인지" }
+        text: { type: string, example: "'국민라이프' 19,000원 출금이 무엇인지" }
 
     PrepItemPayload:
       type: object

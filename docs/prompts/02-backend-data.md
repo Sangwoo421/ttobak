@@ -42,7 +42,7 @@ Invoke-RestMethod http://localhost:8080/api/users/1/briefing | ConvertTo-Json -D
 |---|---|---|---|
 | 101 | 김철수(아들) | R1_REGISTERED_PERSON | CONFIRMED |
 | 102 | 한국전력공사 | R2_REGISTERED_INSTITUTION | PARTIAL |
-| 103 | 대한정보통신 | R5_UNKNOWN | UNKNOWN |
+| 103 | 국민라이프 | R5_UNKNOWN | UNKNOWN |
 | 104 | 국민연금공단 | R2_REGISTERED_INSTITUTION | PARTIAL |
 | 105 | 수수료 | R4_FEE | UNKNOWN |
 | 106 | 김영희(딸) | R1_REGISTERED_PERSON | CONFIRMED |

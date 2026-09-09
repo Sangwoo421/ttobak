@@ -22,7 +22,7 @@
     "candidates": [
       { "id": "TX:101", "label": "아드님 김철수 님 삼십만 원", "score": 0.92 },
       { "id": "TX:102", "label": "한국전력 사만 이천 원", "score": 0.31 },
-      { "id": "TX:103", "label": "대한정보통신 만 구천 원", "score": 0.28 }
+      { "id": "TX:103", "label": "국민라이프 만 구천 원", "score": 0.28 }
     ],
     "matched_candidate": "TX:101",
     "match_score": 0.92,

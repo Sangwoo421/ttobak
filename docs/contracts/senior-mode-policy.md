@@ -51,7 +51,7 @@
 - IN + PERSON: "{spoken_name}이 {금액} 보내셨어요."
 - IN + INSTITUTION: "{spoken_name}에서 {금액} 들어왔어요."
 - OUT + INSTITUTION/PERSON: "{spoken_name}으로 {금액} 나갔어요."
-- OUT + UNKNOWN: "{spoken_name}으로 {금액} 나갔어요." (spoken_name = "'대한정보통신'이라는 곳")
+- OUT + UNKNOWN: "{spoken_name}으로 {금액} 나갔어요." (spoken_name = "'국민라이프'이라는 곳")
 
 **설명** (`EXPLAIN`)
 - CONFIRMED: "{spoken_name}이 보내신 돈이에요. 등록된 {relation} 통장에서 왔어요."

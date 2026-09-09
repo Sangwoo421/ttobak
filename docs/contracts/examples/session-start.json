@@ -3,13 +3,13 @@
   "state": "LISTENING",
   "tone": "friendly",
   "briefing": {
-    "text": "김영자 님, 들어오고 나간 돈 세 가지를 읽어드릴게요. 첫째, 어제 오후에 아드님 김철수 님이 삼십만 원 보내셨어요. 둘째, 오늘 아침에 한국전력으로 사만 이천 원 나갔어요. 셋째, 오늘 아침에 '대한정보통신'이라는 곳으로 만 구천 원 나갔어요. 더 궁금한 게 있으면 말씀하세요.",
+    "text": "김영자 님, 들어오고 나간 돈 세 가지를 읽어드릴게요. 첫째, 어제 오후에 아드님 김철수 님이 삼십만 원 보내셨어요. 둘째, 오늘 아침에 한국전력으로 사만 이천 원 나갔어요. 셋째, 오늘 아침에 '국민라이프'이라는 곳으로 만 구천 원 나갔어요. 더 궁금한 게 있으면 말씀하세요.",
     "audio_url": "/ai/audio/briefing_sess_demo_0001.mp3",
     "remaining_count": 0,
     "items": [
       { "ordinal": 1, "notification_id": 1001, "transaction_id": 101, "level": "CONFIRMED", "short_label": "아드님 김철수 님 삼십만 원", "spoken_sentence": "첫째, 어제 오후에 아드님 김철수 님이 삼십만 원 보내셨어요." },
       { "ordinal": 2, "notification_id": 1002, "transaction_id": 102, "level": "PARTIAL", "short_label": "한국전력 사만 이천 원", "spoken_sentence": "둘째, 오늘 아침에 한국전력으로 사만 이천 원 나갔어요." },
-      { "ordinal": 3, "notification_id": 1003, "transaction_id": 103, "level": "UNKNOWN", "short_label": "대한정보통신 만 구천 원", "spoken_sentence": "셋째, 오늘 아침에 '대한정보통신'이라는 곳으로 만 구천 원 나갔어요." }
+      { "ordinal": 3, "notification_id": 1003, "transaction_id": 103, "level": "UNKNOWN", "short_label": "국민라이프 만 구천 원", "spoken_sentence": "셋째, 오늘 아침에 '국민라이프'이라는 곳으로 만 구천 원 나갔어요." }
     ]
   },
   "ui": {
