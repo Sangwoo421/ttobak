@@ -12,6 +12,9 @@ import { seniorErrorMessage } from '@/api/http'
 
 // 시연 3단계: 대화 화면. 말풍선 + 마이크 상태 + 큰 마이크 + ui.buttons(+ CLARIFY 면 choices).
 // tone=confirm 이면 ToneFrame 이 화면 전체를 바꾸고 버튼은 맞아요/아니에요만 크게.
+//
+// 시각 규칙(design/A_Chat.dc.html · A안 마감본): 대화는 회색 종이 위에 바로 놓인다(패널 테두리 없음).
+// 하단은 흰 면 + 머리카락 선. 듣는 중 표시 → 검정 마이크 → 선택 버튼 → 글 입력 순.
 const router = useRouter()
 const route = useRoute()
 const conv = useConversation()
@@ -38,6 +41,11 @@ const voiceGuide = computed(() => {
   if (session.state === 'CLARIFY') return '다시 말씀하시거나, 아래에서 골라주세요.'
   if (isConfirm.value) return '내용이 맞는지 말하거나 큰 버튼으로 알려주세요.'
   return '마이크를 누르고 궁금한 내용을 말씀하세요.'
+})
+// 거래 한 건을 눌러 들어왔을 때(브리핑 항목이 하나뿐) 어떤 알림을 듣고 있는지 위에 칩 하나로 남긴다.
+const contextChip = computed(() => {
+  const items = session.briefing?.items || []
+  return items.length === 1 ? items[0].short_label : ''
 })
 
 /** start=true 면 브리핑 없이 바로 대화. tx=101 이면 그 거래 한 건을 읽고 대화로 이어간다.
@@ -86,37 +94,26 @@ async function sendText() {
 
 <template>
   <SeniorShell :title="isConfirm ? '확인해 주세요' : '물어보기'">
+    <template #right>
+      <span v-if="session.counterCount" class="counter-pill" aria-label="창구 목록에 담긴 항목">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13" /><path d="M8 12h13" /><path d="M8 18h13" /><path d="M3 6h.01" /><path d="M3 12h.01" /><path d="M3 18h.01" /></svg>
+        창구 목록 {{ session.counterCount }}
+      </span>
+    </template>
+
     <ToneFrame :tone="session.tone">
       <div class="chat">
-        <div class="conversation-panel">
-          <div ref="listEl" class="messages" role="log" aria-live="polite" aria-relevant="additions text">
-            <div v-if="startError" class="start-error" role="alert">
-              <p>{{ startError }}</p>
-              <BigButton kind="secondary" @click="startDirectChat">다시 연결하기</BigButton>
-            </div>
-            <p v-else-if="starting" class="starting">챗봇을 준비하고 있어요…</p>
-            <SpeechBubble v-for="m in session.messages" :key="m.id" :role="m.role" :text="m.text" :tone="m.tone" />
-            <p v-if="conv.hint.value" class="hint" role="alert">{{ conv.hint.value }}</p>
+        <div ref="listEl" class="messages" role="log" aria-live="polite" aria-relevant="additions text">
+          <div v-if="startError" class="start-error" role="alert">
+            <p>{{ startError }}</p>
+            <BigButton kind="secondary" @click="startDirectChat">다시 연결하기</BigButton>
           </div>
-
-          <form
-            v-if="!startError && !conv.ended.value && !conv.stopping.value"
-            class="text-composer"
-            aria-label="글로 대화하기"
-            @submit.prevent="sendText"
-          >
-            <label for="senior-chat-text" class="sr-only">궁금한 내용 입력</label>
-            <input
-              id="senior-chat-text"
-              v-model="typedText"
-              type="text"
-              inputmode="text"
-              autocomplete="off"
-              placeholder="이 안에 글로 물어보세요"
-              :disabled="disabled"
-            />
-            <button type="submit" :disabled="disabled || !typedText.trim()">보내기</button>
-          </form>
+          <p v-else-if="starting" class="starting">챗봇을 준비하고 있어요…</p>
+          <template v-else>
+            <span v-if="contextChip" class="context-chip">듣고 있는 알림 · {{ contextChip }}</span>
+            <SpeechBubble v-for="m in session.messages" :key="m.id" :role="m.role" :text="m.text" :tone="m.tone" />
+          </template>
+          <p v-if="conv.hint.value" class="hint" role="alert">{{ conv.hint.value }}</p>
         </div>
 
         <div v-if="!startError" class="bottom" :class="{ confirm: isConfirm }">
@@ -132,7 +129,7 @@ async function sendText() {
 
           <template v-else>
             <MicStatus :status="conv.micStatus.value" :level="recorder.level.value" />
-            <p class="voice-guide">{{ voiceGuide }}</p>
+            <p v-if="isConfirm || session.state === 'CLARIFY'" class="voice-guide">{{ voiceGuide }}</p>
 
             <!-- 말하는 것이 이 서비스의 주 입력 수단이다. 스크롤을 내려야 보이면 안 된다.
                  못 알아들었을 때(CLARIFY)도 숨기지 않는다 — 다시 말해 보는 게 가장 자연스러운
@@ -162,6 +159,24 @@ async function sendText() {
               </BigButton>
             </div>
 
+            <form
+              v-if="!isConfirm"
+              class="text-composer"
+              aria-label="글로 대화하기"
+              @submit.prevent="sendText"
+            >
+              <label for="senior-chat-text" class="sr-only">궁금한 내용 입력</label>
+              <input
+                id="senior-chat-text"
+                v-model="typedText"
+                type="text"
+                inputmode="text"
+                autocomplete="off"
+                placeholder="글로 물어보세요"
+                :disabled="disabled"
+              />
+              <button type="submit" :disabled="disabled || !typedText.trim()">보내기</button>
+            </form>
           </template>
         </div>
       </div>
@@ -177,25 +192,50 @@ async function sendText() {
   min-height: 0;
 }
 
-.conversation-panel {
-  flex: 1;
-  min-height: 250px;
-  display: flex;
-  flex-direction: column;
-  margin: 8px 12px 0;
-  overflow: hidden;
-  border: 2px solid #d8d2c7;
-  border-radius: 20px;
-  background: #f8f7f3;
-  box-shadow: 0 4px 14px rgba(69, 58, 25, 0.07);
+.counter-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 13px 8px 11px;
+  border-radius: 999px;
+  background: var(--warn-bg, #fff4d1);
+  color: var(--warn, #8a5a00);
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
+.counter-pill svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* 대화는 종이 위에 바로. 패널을 따로 두르지 않는다. */
 .messages {
   flex: 1;
   overflow-y: auto;
-  padding: 8px 12px 14px;
+  padding: 18px 18px 14px;
   min-height: 150px;
-  max-height: calc(100vh - 500px);
+  max-height: calc(100vh - 470px);
+  display: flex;
+  flex-direction: column;
+}
+
+.context-chip {
+  align-self: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #e9e7e0;
+  color: var(--ink-3, #85817a);
+  font-size: 13px;
+  font-weight: 700;
+  word-break: keep-all;
+  text-align: center;
 }
 
 .hint {
@@ -203,16 +243,17 @@ async function sendText() {
   color: var(--bad);
   font-weight: 800;
   font-size: var(--senior-font);
-  margin: 10px 0 0;
+  margin: 14px 0 0;
 }
 
 .starting,
 .start-error {
   margin: 24px 0;
   padding: 18px;
-  border-radius: var(--radius);
-  background: var(--card);
-  box-shadow: var(--shadow);
+  border-radius: 20px;
+  background: #fff;
+  border: 1px solid var(--card-line, #e9e6df);
+  box-shadow: var(--soft, 0 1px 2px rgba(23, 22, 26, 0.04), 0 8px 24px rgba(23, 22, 26, 0.05));
   text-align: center;
   font-size: var(--senior-font);
   font-weight: 800;
@@ -220,16 +261,16 @@ async function sendText() {
 
 .start-error {
   color: var(--bad);
-  border: 3px solid var(--bad);
+  border-color: var(--bad);
 }
 
 .bottom {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 10px 14px 16px;
-  background: rgba(255, 255, 255, 0.5);
-  border-top: 1px solid var(--line);
+  gap: 12px;
+  padding: 16px 18px 22px;
+  background: #fff;
+  border-top: 1px solid #edebe5;
 }
 
 .bottom.confirm {
@@ -238,9 +279,9 @@ async function sendText() {
 }
 
 .voice-guide {
-  margin: -2px 4px 2px;
-  color: var(--muted);
-  font-size: var(--senior-font);
+  margin: -4px 4px 0;
+  color: var(--ink-3, #85817a);
+  font-size: 17px;
   font-weight: 700;
   line-height: 1.4;
   text-align: center;
@@ -249,7 +290,8 @@ async function sendText() {
 
 .bottom.confirm .voice-guide {
   color: var(--confirm-text);
-  font-weight: 900;
+  font-size: var(--senior-font);
+  font-weight: 800;
 }
 
 .choices,
@@ -259,51 +301,55 @@ async function sendText() {
   gap: 10px;
 }
 
+/* 확인 단계의 예/아니오, 담기/아니요 같은 두 개짜리는 나란히 */
 .buttons.two {
-  gap: 14px;
+  flex-direction: row;
+  gap: 10px;
+}
+
+.buttons.two > * {
+  flex: 1;
 }
 
 .text-composer {
   display: flex;
   gap: 8px;
   align-items: stretch;
-  padding: 10px;
-  border-top: 2px solid #ddd7cc;
-  background: #fff;
+  padding-top: 2px;
 }
 
 .text-composer input {
   min-width: 0;
-  min-height: 72px;
+  min-height: 60px;
   flex: 1;
-  border: 3px solid var(--secondary-border);
-  border-radius: var(--radius);
-  background: #fff;
-  color: var(--text);
-  padding: 12px 14px;
+  border: 1px solid var(--secondary-border, #e6e3dc);
+  border-radius: 15px;
+  background: var(--field, #f8f7f4);
+  color: var(--ink, #17161a);
+  padding: 0 16px;
   font: inherit;
-  font-size: var(--senior-font);
+  font-size: 17px;
 }
 
 .text-composer input::placeholder {
-  color: var(--muted);
+  color: var(--ink-3, #85817a);
 }
 
 .text-composer button {
-  min-height: 72px;
+  min-height: 60px;
   flex: none;
-  border: 3px solid var(--kb-yellow-dark);
-  border-radius: var(--radius);
-  background: var(--kb-yellow);
-  color: var(--primary-text);
-  padding: 10px 16px;
-  font-size: var(--senior-font);
-  font-weight: 900;
+  border: 1px solid var(--secondary-border, #e6e3dc);
+  border-radius: 15px;
+  background: #fff;
+  color: #6b675e;
+  padding: 0 20px;
+  font-size: 17px;
+  font-weight: 700;
 }
 
 .text-composer input:focus-visible,
 .text-composer button:focus-visible {
-  outline: 5px solid #1a56b0;
+  outline: 4px solid #1a56b0;
   outline-offset: 2px;
 }
 
@@ -327,8 +373,8 @@ async function sendText() {
 
 .end-text {
   text-align: center;
-  font-size: var(--senior-font-xl);
-  font-weight: 900;
+  font-size: var(--senior-font-lg);
+  font-weight: 800;
   padding: 20px 0;
 }
 </style>
