@@ -49,27 +49,38 @@ async function lookup() {
 
 <style scoped>
 .home {
-  max-width: 560px;
-  padding-top: 60px;
+  width: 100%;
+  max-width: none;
+  min-height: 100%;
+  padding: 44px 20px 36px;
 }
 
 .code-form {
   display: flex;
+  flex-direction: column;
   gap: 10px;
   margin: 20px 0 10px;
 }
 
 .code-input {
-  flex: 1;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   font-size: 32px !important;
-  letter-spacing: 0.3em;
+  letter-spacing: 0.22em;
   text-align: center;
   font-variant-numeric: tabular-nums;
 }
 
+.code-form .btn {
+  width: 100%;
+  min-height: 48px;
+}
+
 .links {
   display: flex;
-  gap: 20px;
+  flex-direction: column;
+  gap: 12px;
   margin-top: 30px;
 }
 </style>

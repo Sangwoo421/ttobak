@@ -261,3 +261,7 @@ def prep_sentence(prep_items: list[dict]) -> str:
 def summary_text(prep_items: list[dict], ticket_no: int | None) -> str:
     ticket = f"번호표 {to_korean(ticket_no)} 번이에요. " if ticket_no is not None else ""
     return f"창구 갈 준비가 됐어요. {prep_sentence(prep_items)}. {ticket}창구에서 이 화면을 보여주세요."
+
+
+def summary_empty() -> str:
+    return "아직 창구에서 정리할 내용이 없어요. 하려던 일이나 여쭤볼 것을 먼저 말씀해 주세요."

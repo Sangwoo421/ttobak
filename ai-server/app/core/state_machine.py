@@ -69,6 +69,10 @@ class TurnContext:
     llm: Any              # SafeLLM: classify_intent / choose_candidate / explain -> (result, error)
 
 
+class EmptySummaryError(ValueError):
+    """Raised when neither a confirmed request nor a counter question exists."""
+
+
 # ================================================================ entry ====
 def handle_turn(session: Session, ctx: TurnContext, *, text: str | None = None,
                 button_id: str | None = None, choice_id: str | None = None) -> TurnResult:
@@ -251,6 +255,11 @@ def _do_stop(session: Session, r: TurnResult) -> None:
 
 
 def _do_summary(session: Session, ctx: TurnContext, r: TurnResult) -> None:
+    requests, questions = _summary_content(session)
+    if not requests and not questions:
+        r.assistant_text, r.state = T.summary_empty(), "LISTENING"
+        return
+
     result = create_summary(session, ctx)
     r.assistant_text, r.tone, r.state = result["spoken_text"], "confirm", "DONE"
     r.actions.append({"type": "OPEN_SUMMARY", "payload": {
@@ -261,15 +270,18 @@ def _do_summary(session: Session, ctx: TurnContext, r: TurnResult) -> None:
 
 def create_summary(session: Session, ctx: TurnContext) -> dict:
     """Shared by GO_COUNTER and POST /ai/session/{id}/summary. Only confirmed requests are sent."""
-    requests = [dict(q) for q in session.requests if q.get("confirmed_by_user")]
-    fingerprint = (len(requests), len(session.questions))
+    requests, questions = _summary_content(session)
+    if not requests and not questions:
+        raise EmptySummaryError("requests and questions must not both be empty")
+
+    fingerprint = (len(requests), len(questions))
     if session.summary is None or session.summary_fingerprint != fingerprint:
         payload = {
             "user_id": session.user_id,
             "session_id": session.session_id,
             "branch_name": None,
             "requests": requests,
-            "questions": [dict(q) for q in session.questions],
+            "questions": questions,
         }
         session.summary = ctx.backend.create_summary(payload)
         session.summary_fingerprint = fingerprint
@@ -281,6 +293,12 @@ def create_summary(session: Session, ctx: TurnContext) -> dict:
         "summary_id": s.get("id"), "code": s.get("code"), "ticket_no": s.get("ticket_no"),
         "branch_name": s.get("branch_name"), "spoken_text": spoken, "tone": "confirm",
     }
+
+
+def _summary_content(session: Session) -> tuple[list[dict], list[dict]]:
+    requests = [dict(q) for q in session.requests if q.get("confirmed_by_user")]
+    questions = [dict(q) for q in session.questions]
+    return requests, questions
 
 
 # ======================================================= clarify helpers ====

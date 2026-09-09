@@ -57,12 +57,16 @@ public class SummaryService {
 
     @Transactional
     public SummaryDto create(SummaryCreateRequest req) {
+        List<RequestItemPayload> requests = req.getRequests() == null ? List.of() : req.getRequests();
+        List<QuestionItemPayload> questions = req.getQuestions() == null ? List.of() : req.getQuestions();
+        if (requests.isEmpty() && questions.isEmpty()) {
+            throw new BusinessException(ErrorCode.EMPTY_SUMMARY,
+                    "requests and questions must not both be empty");
+        }
+
         auth.assertUser(req.getUserId());
         User user = transactions.findUser(req.getUserId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.UNKNOWN_USER, "unknown user_id " + req.getUserId()));
-
-        List<RequestItemPayload> requests = req.getRequests() == null ? List.of() : req.getRequests();
-        List<QuestionItemPayload> questions = req.getQuestions() == null ? List.of() : req.getQuestions();
 
         for (RequestItemPayload r : requests) {
             if (!Boolean.TRUE.equals(r.getConfirmedByUser())) {
