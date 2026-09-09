@@ -10,7 +10,29 @@ export const http = axios.create({
   headers: { Accept: 'application/json' },
 })
 
-/** axios 오류 → 사람이 읽을 메시지 */
+// 로그인 세션은 탭을 닫으면 사라지는 sessionStorage 에만 둔다.
+// API 모듈이 Pinia 스토어를 직접 import 하면 순환 참조가 생기므로 요청 직전에 읽는다.
+http.interceptors.request.use((config) => {
+  try {
+    const raw = sessionStorage.getItem('ttobak.auth.session')
+    const token = raw ? JSON.parse(raw)?.access_token : null
+    if (token) config.headers.Authorization = `Bearer ${token}`
+  } catch {
+    /* 저장소 접근이 막혀도 공개 API 호출은 계속한다 */
+  }
+  return config
+})
+
+/** 어르신 화면용 오류 문구.
+ *  상태코드나 브라우저 원문("Network Error", "timeout of 60000ms exceeded")을 그대로 보여주면
+ *  이 사용자층에는 아무 도움이 안 되고, 디지털 약자 대상 서비스에서 특히 나쁘게 읽힌다.
+ *  기술적 상세는 콘솔로 보내고 화면에는 한 문장만 남긴다. */
+export function seniorErrorMessage(err) {
+  if (err) console.warn('[senior]', err)
+  return '지금 연결이 안 돼요. 잠시 뒤에 다시 해보세요.'
+}
+
+/** axios 오류 → 사람이 읽을 메시지 (직원 화면·개발자 패널용. 상세를 그대로 보여준다) */
 export function errorMessage(err) {
   if (!err) return '알 수 없는 오류'
   if (err.response) {

@@ -1,6 +1,7 @@
 """Deterministic sentence templates — senior-mode-policy.md section 4. No LLM here."""
 from __future__ import annotations
 
+import re
 from datetime import datetime
 
 from app.core.candidates import clean_spoken_name
@@ -42,6 +43,10 @@ def euro(w: str) -> str:
 
 def ieyo(w: str) -> str:
     return josa(w, "이에요", "예요")
+
+
+def irago(w: str) -> str:
+    return josa(w, "이라고", "라고")
 
 
 # -------------------------------------------------------------- briefing ----
@@ -107,8 +112,51 @@ def explain(item: dict) -> str:
 
 
 def explain_unknown(counterparty_name: str) -> str:
-    return (f"통장에는 '{counterparty_name}'이라고만 적혀 있어서, 무슨 돈인지는 제가 알 수 없어요. "
-            f"창구에서 여쭤볼 목록에 적어둘까요?")
+    return (f"통장에는 '{counterparty_name}'{irago(counterparty_name)}만 적혀 있어서, "
+            f"무슨 돈인지는 제가 알 수 없어요. 창구에서 여쭤볼 목록에 적어둘까요?")
+
+
+def focused(item: dict, when: str) -> str:
+    """내역에서 거래 한 건을 눌렀을 때: 그 건을 읽고, 설명에서 새로 더할 것만 잇는다.
+
+    브리핑 문구가 이미 '누가 얼마'를 말하므로 explain() 을 그대로 붙이면 같은 말을 두 번 한다.
+    한 번에 한 가지만 말한다는 정책(senior-mode-policy §1)에도 어긋난다.
+    """
+    tx, cls = item["transaction"], item["classification"]
+    head = f"{when}에 {briefing_clause(tx, cls)}"
+    level = cls.get("level")
+    cp = cls.get("counterparty") or {}
+    if level == "CONFIRMED":
+        rel = cp.get("relation") or "가족"
+        return f"{head} 등록된 {rel} 통장이에요."
+    if level == "PARTIAL":
+        return f"{head} 자세한 내역은 제가 볼 수 없어요."
+    return f"{head} {explain_unknown(tx.get('counterparty_name', ''))}"
+
+
+def counter_question_from(asked: str) -> str:
+    """창구 목록에 담을 문장. 어르신이 한 말을 그대로 옮긴다.
+
+    주제만 뽑아 "적금에 대해 문의" 처럼 다듬어 봤지만, "대출 받고 싶어"가 "대출 받고에 대해
+    문의"가 되는 식으로 계속 어긋났다. 말을 고쳐 쓰는 것 자체가 작은 의미의 지어내기이기도 하다.
+    직원에게도 고객이 실제로 한 말이 더 쓸모 있다.
+    """
+    text = (asked or "").strip()
+    return f'"{text}" (고객 말씀 그대로)' if text else "창구에서 여쭤볼 내용"
+
+
+def ask_free() -> str:
+    """무엇을 창구에 물어볼지 직접 받는다. 목록에 빈 문구를 넣으면 직원에게 쓸모가 없다."""
+    return "무엇이 궁금하신지 말씀해 주세요. 들은 그대로 창구 목록에 적어드릴게요."
+
+
+def cannot_answer() -> str:
+    """앱이 답할 수 없는 은행 질문. 모른다고 밝히고 창구로 잇는다.
+
+    무엇을 들었는지는 화면의 말풍선이 이미 보여주므로 음성에서 되풀이하지 않는다
+    (한 번에 한 가지만 말한다, senior-mode-policy §1).
+    """
+    return "그건 제가 알려드리기 어려워요. 창구에서 여쭤볼 목록에 적어둘까요?"
 
 
 def default_question(tx: dict) -> str:
@@ -239,3 +287,7 @@ def prep_sentence(prep_items: list[dict]) -> str:
 def summary_text(prep_items: list[dict], ticket_no: int | None) -> str:
     ticket = f"번호표 {to_korean(ticket_no)} 번이에요. " if ticket_no is not None else ""
     return f"창구 갈 준비가 됐어요. {prep_sentence(prep_items)}. {ticket}창구에서 이 화면을 보여주세요."
+
+
+def summary_empty() -> str:
+    return "아직 창구에서 정리할 내용이 없어요. 하려던 일이나 여쭤볼 것을 먼저 말씀해 주세요."

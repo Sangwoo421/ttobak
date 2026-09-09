@@ -1,9 +1,15 @@
 <script setup>
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { won } from '@/utils/format'
 import { useAudioPlayer } from '@/composables/useAudioPlayer'
+import SeniorHome from './SeniorHome.vue'
+import { useAppModeStore } from '@/stores/appMode'
+import { useAuthStore } from '@/stores/auth'
+import { useSessionStore } from '@/stores/session'
 
 // KB스타뱅킹 느낌의 정적 홈 목업. 위쪽 푸시 알림 배너를 누르면 어르신 모드 브리핑으로 들어간다.
+// 어르신 모드는 앱의 모드다(appMode 스토어). 화면을 옮겨 다니거나 새로고침해도 유지된다.
 // (담당 조태석) 시연 1단계. 여기서는 어떤 API 도 부르지 않는다.
 const router = useRouter()
 const player = useAudioPlayer()
@@ -15,10 +21,10 @@ const recent = [
   { id: 103, title: '대한정보통신', sub: '오늘 09:10 · 자동이체', amount: 19000, type: 'OUT' },
 ]
 const quick = [
-  { icon: '↗', label: '이체' },
-  { icon: '≡', label: '조회' },
-  { icon: '▭', label: '카드' },
-  { icon: '⋯', label: '더보기' },
+  { label: '이체' },
+  { label: '조회' },
+  { label: '카드' },
+  { label: '대기표', path: '/branch-ticket' },
 ]
 const tabs = ['홈', '자산', '상품', '혜택', '전체']
 
@@ -26,10 +32,54 @@ function openBriefing() {
   player.unlock() // 사용자 제스처 안에서 오디오를 한 번 깨워 두면 이후 자동재생이 잘 된다
   router.push('/senior/briefing')
 }
+
+// 어르신 모드는 앱의 모드다. 화면을 옮겨 다녀도 유지되어야 하므로 스토어에 있다.
+// (중간에 있던 "또박또박 챗봇" 진입 버튼은 카드형 UI 라 은행 홈 레이아웃을 깼어서 없앴다 -
+//  어르신 모드 진입은 상단 버튼 하나로 통일한다.)
+const appMode = useAppModeStore()
+const auth = useAuthStore()
+const session = useSessionStore()
+
+function openSummary() {
+  if (!session.latest_summary_id) {
+    outOfScope('아직 정리된 창구 요약서가 없어요. 말로 물어보기에서 창구 갈 일을 먼저 정리해 주세요.')
+    return
+  }
+  player.unlock()
+  router.push(`/senior/summary/${session.latest_summary_id}`)
+}
+
+function openQuick(item) {
+  if (item.path) {
+    player.unlock()
+    router.push(item.path)
+    return
+  }
+  outOfScope(item.label)
+}
+
+async function logout() {
+  await auth.logout()
+  router.replace('/login')
+}
+
+// 이체·조회·카드처럼 기존 앱이 이미 하는 일은 만들지 않는다(기획서 "적용 형태").
+// 다만 아무 반응이 없으면 덜 만든 것처럼 보이므로, 경계라는 사실을 화면이 직접 말한다.
+const notice = ref('')
+let noticeTimer = null
+function outOfScope(label) {
+  notice.value = label.includes('요약서')
+    ? label
+    : `${label}는 기존 KB스타뱅킹 기능이라 이번 프로토타입에서는 만들지 않았어요.`
+  clearTimeout(noticeTimer)
+  noticeTimer = setTimeout(() => { notice.value = '' }, 2600)
+}
 </script>
 
 <template>
-  <div class="kb-home">
+  <SeniorHome v-if="appMode.seniorMode" :account="account" @exit="appMode.disable()" />
+
+  <div v-else class="kb-home">
     <!-- 푸시 알림 배너 -->
     <button type="button" class="push" @click="openBriefing">
       <span class="app-icon">KB</span>
@@ -41,8 +91,13 @@ function openBriefing() {
     </button>
 
     <header class="kb-top">
-      <span class="logo"><span class="star">★</span>KB스타뱅킹</span>
-      <span class="bell">🔔</span>
+      <span class="logo">KB스타뱅킹</span>
+      <span class="header-actions">
+        <button type="button" class="senior-toggle" @click="appMode.enable()">
+          <span>간편 모드</span>
+        </button>
+        <button type="button" class="logout" @click="logout">로그아웃</button>
+      </span>
     </header>
 
     <section class="balance">
@@ -50,17 +105,24 @@ function openBriefing() {
       <div class="acc-no">{{ account.number }}</div>
       <div class="acc-balance">{{ won(account.balance) }}</div>
       <div class="acc-actions">
-        <button type="button">이체</button>
-        <button type="button">내역</button>
+        <button type="button" @click="outOfScope('이체')">이체</button>
+        <button type="button" @click="outOfScope('내역 조회')">내역</button>
       </div>
     </section>
 
     <section class="quick">
-      <button v-for="q in quick" :key="q.label" type="button" class="quick-btn">
-        <span class="q-icon">{{ q.icon }}</span>
+      <button v-for="q in quick" :key="q.label" type="button" class="quick-btn" @click="openQuick(q)">
         <span>{{ q.label }}</span>
       </button>
     </section>
+
+    <button type="button" class="summary-shortcut" @click="openSummary">
+      <span>
+        <b>창구 요약서</b>
+        <small>{{ session.latest_summary_id ? '정리해 둔 창구 업무 다시 보기' : '말로 정리한 창구 업무를 확인해요' }}</small>
+      </span>
+      <span class="summary-arrow" aria-hidden="true">›</span>
+    </button>
 
     <section class="recent">
       <h3>최근 거래</h3>
@@ -76,10 +138,13 @@ function openBriefing() {
     <div class="spacer" />
 
     <nav class="tabbar">
-      <button v-for="(t, i) in tabs" :key="t" type="button" :class="{ on: i === 0 }">{{ t }}</button>
+      <button v-for="(t, i) in tabs" :key="t" type="button" :class="{ on: i === 0 }"
+              @click="i === 0 ? null : outOfScope(t)">{{ t }}</button>
     </nav>
 
-    <router-link class="staff-link" to="/staff">직원 화면 →</router-link>
+    <transition name="fade">
+      <p v-if="notice" class="scope-notice">{{ notice }}</p>
+    </transition>
   </div>
 </template>
 
@@ -90,7 +155,6 @@ function openBriefing() {
   min-height: 100%;
   flex: 1;
   background: #f5f5f3;
-  padding-bottom: 70px;
   position: relative;
 }
 
@@ -175,9 +239,20 @@ function openBriefing() {
   color: var(--kb-brown);
 }
 
-.star {
-  color: var(--kb-yellow);
-  margin-right: 4px;
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.logout {
+  min-height: 40px;
+  padding: 0 10px;
+  border: 0;
+  background: transparent;
+  color: #756d61;
+  font-size: 13px;
+  font-weight: 800;
 }
 
 .balance {
@@ -231,26 +306,50 @@ function openBriefing() {
   background: #fff;
   border: 1px solid #eee;
   border-radius: 14px;
+  min-height: 58px;
   padding: 12px 4px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
   font-size: 13px;
   font-weight: 700;
   color: #333;
 }
 
-.q-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: var(--kb-yellow-soft);
-  color: var(--kb-brown);
+.summary-shortcut {
+  min-height: 72px;
+  margin: 2px 16px 8px;
+  padding: 14px 16px;
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-size: 18px;
+  justify-content: space-between;
+  gap: 12px;
+  border: 2px solid #d4a300;
+  border-radius: 16px;
+  background: #fff;
+  color: #2b2620;
+  text-align: left;
+}
+
+.summary-shortcut span:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.summary-shortcut b {
+  font-size: 17px;
+}
+
+.summary-shortcut small {
+  color: #6b6458;
+  font-size: 13px;
+}
+
+.summary-arrow {
+  color: #8a6a00;
+  font-size: 32px;
+  line-height: 1;
 }
 
 .recent {
@@ -305,11 +404,11 @@ function openBriefing() {
   flex: 1;
 }
 
+/* 프레임 안에서 스크롤되므로 absolute 로는 내용을 따라 올라간다. sticky 로 바닥에 붙인다. */
 .tabbar {
-  position: absolute;
-  left: 0;
-  right: 0;
+  position: sticky;
   bottom: 0;
+  z-index: 4;
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   background: #fff;
@@ -330,12 +429,50 @@ function openBriefing() {
   color: var(--kb-brown);
 }
 
-.staff-link {
-  position: absolute;
-  right: 12px;
-  bottom: 56px;
-  font-size: 11px;
-  color: #aaa;
-  text-decoration: none;
+/* 어르신 모드 진입. 기획서의 "기존 앱 안의 부가 모드" 전제가 화면에서 보여야 한다. */
+.senior-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--kb-yellow-soft);
+  box-shadow: var(--shadow);
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--kb-brown);
+  cursor: pointer;
 }
+.senior-toggle:active { background: #ffe5a3; }
+
+@media (max-width: 380px) {
+  .kb-top {
+    align-items: flex-start;
+  }
+
+  .header-actions {
+    flex-direction: column;
+    align-items: flex-end;
+  }
+}
+
+/* 만들지 않은 기존 앱 기능을 눌렀을 때. 침묵보다 경계를 밝히는 편이 낫다. */
+.scope-notice {
+  position: sticky;
+  bottom: 62px;
+  z-index: 5;
+  margin: 0 16px -46px; /* 탭바 위에 떠 보이되 레이아웃을 밀지 않는다 */
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: #fff;
+  color: #2b2620;
+  border: 2px solid #d4a300;
+  font-size: 15px;
+  line-height: 1.45;
+  text-align: center;
+}
+.fade-enter-active, .fade-leave-active { transition: opacity 0.18s ease; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
 </style>

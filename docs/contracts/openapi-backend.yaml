@@ -15,6 +15,8 @@ tags:
   - { name: classification, description: 거래 확인 가능 여부 규칙 엔진 (담당 안상우) }
   - { name: counterparties, description: 등록 수취인·거래 상대 (담당 안상우) }
   - { name: summaries, description: 창구 요약서 (담당 강두형) }
+  - { name: auth, description: 해커톤용 간편 로그인 세션 }
+  - { name: branch-tickets, description: 은행 지점 조회와 모바일 대기표 }
   - { name: staff, description: 직원용 조회·처리 (담당 강두형) }
   - { name: logs, description: 대화 로그 P1 (담당 안상우) }
 
@@ -24,6 +26,99 @@ paths:
       summary: 헬스체크
       responses:
         "200": { description: ok, content: { application/json: { schema: { type: object, properties: { status: { type: string, example: ok } } } } } }
+
+  /api/auth/simple-login:
+    post:
+      tags: [auth]
+      summary: 해커톤용 6자리 간편비밀번호 로그인
+      description: 실제 서비스에서는 은행 인증 서버와 FIDO/생체인증으로 교체한다.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SimpleLoginRequest" }
+      responses:
+        "200": { description: 로그인됨, content: { application/json: { schema: { $ref: "#/components/schemas/AuthSession" } } } }
+        "401": { description: 비밀번호 불일치 }
+
+  /api/auth/session:
+    get:
+      tags: [auth]
+      summary: 현재 간편 로그인 세션 확인
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: 로그인 사용자, content: { application/json: { schema: { $ref: "#/components/schemas/AuthUser" } } } }
+        "401": { description: 로그인 필요 또는 만료 }
+
+  /api/auth/logout:
+    post:
+      tags: [auth]
+      summary: 현재 간편 로그인 세션 종료
+      security: [{ bearerAuth: [] }]
+      responses:
+        "204": { description: 로그아웃됨 }
+
+  /api/branches:
+    get:
+      tags: [branch-tickets]
+      summary: 대기표 발급이 가능한 지점과 예상 대기 현황
+      responses:
+        "200":
+          description: 지점 목록
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/BankBranch" } }
+
+  /api/branches/{branch_id}/tickets:
+    post:
+      tags: [branch-tickets]
+      summary: 선택한 지점의 모바일 대기표 발급
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: branch_id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BranchTicketCreateRequest" }
+      responses:
+        "201": { description: 발급됨, content: { application/json: { schema: { $ref: "#/components/schemas/BranchTicket" } } } }
+        "401": { description: 로그인 필요 }
+        "409": { description: 다른 활성 대기표가 이미 있음 }
+
+  /api/branch-tickets/active:
+    get:
+      tags: [branch-tickets]
+      summary: 로그인 사용자의 활성 대기표 조회
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: user_id, in: query, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: 활성 대기표. 없으면 빈 응답 본문.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BranchTicket", nullable: true }
+
+  /api/branch-tickets/{ticket_id}:
+    get:
+      tags: [branch-tickets]
+      summary: 내 대기표 현재 상태 조회
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: ticket_id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200": { description: 대기표, content: { application/json: { schema: { $ref: "#/components/schemas/BranchTicket" } } } }
+        "404": { description: 대기표 없음 }
+    delete:
+      tags: [branch-tickets]
+      summary: 대기 중인 내 대기표 취소
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: ticket_id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200": { description: 취소됨, content: { application/json: { schema: { $ref: "#/components/schemas/BranchTicket" } } } }
+        "409": { description: 이미 호출 또는 완료되어 취소 불가 }
 
   /api/users/{user_id}/briefing:
     get:
@@ -50,6 +145,25 @@ paths:
         - { name: notification_id, in: path, required: true, schema: { type: integer } }
       responses:
         "204": { description: 기록됨 }
+
+  /api/users/{user_id}/transactions:
+    get:
+      tags: [briefing]
+      summary: 최근 거래 목록 (어르신 모드 홈·내역 화면용)
+      description: |
+        브리핑과 다르다. 브리핑은 미청취 알림만 최대 3건 주므로 한 번 들으면 비어 버린다.
+        내역 화면은 들었든 안 들었든 최근 거래를 그대로 보여줘야 해서 별도 경로가 필요하다.
+        응답은 BriefingItem 과 같은 모양이고 notification_id 만 null 이다(알림이 아니라 거래에서 출발).
+        조회 전용이다.
+      parameters:
+        - { name: user_id, in: path, required: true, schema: { type: integer }, example: 1 }
+        - { name: limit, in: query, required: false, schema: { type: integer, default: 10, maximum: 50 } }
+      responses:
+        "200":
+          description: 최근순 거래와 분류 결과
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/BriefingItem" } }
 
   /api/users/{user_id}/counterparties:
     get:
@@ -197,7 +311,74 @@ paths:
         "201": { description: 저장됨 }
 
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: opaque
+
   schemas:
+    SimpleLoginRequest:
+      type: object
+      required: [user_id, pin]
+      properties:
+        user_id: { type: integer, example: 1 }
+        pin: { type: string, pattern: "^[0-9]{6}$", example: "123456" }
+
+    AuthSession:
+      type: object
+      required: [access_token, token_type, expires_in_seconds, user_id, user_name]
+      properties:
+        access_token: { type: string }
+        token_type: { type: string, example: Bearer }
+        expires_in_seconds: { type: integer, example: 1800 }
+        user_id: { type: integer, example: 1 }
+        user_name: { type: string, example: 김영자 }
+
+    AuthUser:
+      type: object
+      required: [user_id, user_name]
+      properties:
+        user_id: { type: integer, example: 1 }
+        user_name: { type: string, example: 김영자 }
+
+    BankBranch:
+      type: object
+      required: [id, name, district, address, opening_hours, waiting_count, estimated_wait_minutes]
+      properties:
+        id: { type: integer }
+        name: { type: string, example: KB국민은행 종로지점 }
+        district: { type: string, example: 종로구 }
+        address: { type: string, example: 서울 종로구 종로 }
+        opening_hours: { type: string, example: "평일 09:00~16:00" }
+        waiting_count: { type: integer, example: 3 }
+        estimated_wait_minutes: { type: integer, example: 18 }
+
+    BranchTicketCreateRequest:
+      type: object
+      required: [user_id]
+      properties:
+        user_id: { type: integer, example: 1 }
+        summary_id: { type: integer, nullable: true, description: 창구 할 일 요약서와 함께 발급할 때 전달 }
+        purpose: { type: string, maxLength: 60, example: 일반 상담 }
+
+    BranchTicket:
+      type: object
+      required: [id, branch_id, branch_name, branch_address, ticket_no, purpose, status, ahead_count, estimated_wait_minutes, issued_at]
+      properties:
+        id: { type: integer }
+        branch_id: { type: integer }
+        summary_id: { type: integer, nullable: true }
+        summary_code: { type: string, nullable: true, pattern: "^[0-9]{6}$" }
+        branch_name: { type: string }
+        branch_address: { type: string }
+        ticket_no: { type: integer, example: 15 }
+        purpose: { type: string, example: 일반 상담 }
+        status: { type: string, enum: [WAITING, CALLED, DONE, CANCELLED] }
+        ahead_count: { type: integer, example: 3 }
+        estimated_wait_minutes: { type: integer, example: 18 }
+        issued_at: { type: string, format: date-time }
+
     Transaction:
       type: object
       required: [id, account_id, type, amount, counterparty_name, occurred_at]

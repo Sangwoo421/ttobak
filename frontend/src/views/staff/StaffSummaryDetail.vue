@@ -39,95 +39,217 @@ onMounted(load)
 </script>
 
 <template>
-  <div class="staff">
-    <div class="bar">
-      <router-link to="/staff/summaries" class="back">← 목록</router-link>
-      <h1 v-if="summary">
-        번호표 {{ summary.ticket_no }}번 · {{ summary.user_name }} 님
-        <span class="status-badge" :class="summary.status">{{ statusLabel(summary.status) }}</span>
-      </h1>
-      <h1 v-else>요약서</h1>
-      <span v-if="saving" class="muted">저장 중…</span>
-      <button class="btn" @click="load">새로고침</button>
-    </div>
+  <div class="staff staff-mobile">
+    <header class="app-bar">
+      <router-link to="/staff/summaries" class="icon-button" aria-label="요약서 목록으로 돌아가기">‹</router-link>
+      <h1>요약서 상세</h1>
+      <button type="button" class="icon-button refresh" aria-label="새로고침" :disabled="saving" @click="load">↻</button>
+    </header>
 
-    <p v-if="summary" class="muted meta">접수 {{ dateTime(summary.created_at) }} · {{ summary.branch_name }} · 코드 <b class="mono">{{ summary.code }}</b></p>
     <p v-if="error" class="error-box">{{ error }}</p>
 
-    <div v-if="summary" class="grid">
-      <SummaryCard :summary="summary" size="staff" checkable @toggle="onToggle" />
-      <aside class="help">
-        <h3>처리 방법</h3>
+    <template v-if="summary">
+      <section class="customer-card">
+        <div class="customer-top">
+          <span class="ticket">번호표 <b>{{ summary.ticket_no }}</b>번</span>
+          <span class="status-badge" :class="summary.status">{{ statusLabel(summary.status) }}</span>
+        </div>
+        <p class="card-guide">고객님의 방문 업무를 확인해 주세요.</p>
+        <h2>{{ summary.user_name }} 고객님</h2>
+        <dl class="summary-meta">
+          <div>
+            <dt>접수 시각</dt>
+            <dd>{{ dateTime(summary.created_at) }}</dd>
+          </div>
+          <div>
+            <dt>방문 지점</dt>
+            <dd>{{ summary.branch_name }}</dd>
+          </div>
+        </dl>
+      </section>
+
+      <details class="help">
+        <summary>처리 방법 안내</summary>
         <ol>
           <li>"하려던 일"과 "여쭤볼 것"을 처리한 뒤 체크합니다.</li>
           <li>모두 체크되면 상태가 <b>처리 완료</b>로 바뀌고, 어르신 화면에 음성으로 안내됩니다.</li>
           <li>이체 실행은 이 시스템이 하지 않습니다. 창구 절차대로 진행하세요.</li>
         </ol>
-      </aside>
-    </div>
+      </details>
+
+      <SummaryCard :summary="summary" size="staff" :show-header="false" checkable @toggle="onToggle" />
+    </template>
   </div>
 </template>
 
 <style scoped>
-.bar {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  margin-bottom: 6px;
+/* 창구 단말은 노트북이다. 폰 프레임을 뗀 뒤 요소가 화면 끝까지 늘어져 은행 업무 화면으로
+   보이지 않아, 읽기 좋은 폭으로 잡고 가운데 둔다. 좁은 화면에서는 그대로 꽉 찬다. */
+.staff-mobile {
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto;
+  min-height: 100%;
+  flex: 1;
+  padding: 0 0 36px;
+  background: #fff;
+  overflow-x: hidden;
 }
 
-.bar h1 {
-  margin: 0;
-  flex: 1;
+.app-bar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
   display: flex;
   align-items: center;
   gap: 10px;
+  min-height: 64px;
+  margin: 0 0 16px;
+  padding: 10px 16px;
+  background: rgba(255, 255, 255, 0.96);
+  border-bottom: 1px solid #edf0f4;
+  backdrop-filter: blur(10px);
 }
 
-.back {
+.app-bar h1 {
+  margin: 0;
+  flex: 1;
+  font-size: 20px;
+  text-align: center;
+}
+
+.icon-button {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
   color: var(--muted);
+  font-size: 32px;
+  line-height: 1;
   text-decoration: none;
 }
 
-.meta {
-  margin: 0 0 16px;
+.icon-button:active {
+  background: var(--line);
 }
 
-.mono {
-  font-family: ui-monospace, Consolas, monospace;
-  letter-spacing: 0.1em;
+.icon-button.refresh {
+  color: var(--text);
+  font-size: 26px;
 }
 
-.grid {
-  display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(220px, 1fr);
-  gap: 20px;
-  align-items: start;
+.icon-button:disabled {
+  opacity: 0.45;
 }
 
-.help {
-  background: #fffbe8;
-  border: 1px solid #f1e3a0;
-  border-radius: 12px;
-  padding: 14px 18px;
+.customer-card {
+  margin: 0 16px 18px;
+  padding: 20px;
+  border: 2px solid #d4a300;
+  border-radius: 15px;
+  background: #fff;
+  box-shadow: 0 12px 28px rgba(69, 58, 25, 0.1);
+  color: #2b2620;
+}
+
+.customer-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ticket {
+  color: #6b6458;
   font-size: 14px;
 }
 
-.help h3 {
-  margin: 0 0 8px;
+.ticket b {
+  color: #2b2620;
+  font-size: 20px;
+}
+
+.customer-card .status-badge {
+  border: 1px solid #d4a300;
+  background: #fff;
+  color: #5d4a12;
+}
+
+.customer-card .status-badge.DONE {
+  border-color: transparent;
+  background: #e7fff4;
+  color: #14734f;
+}
+
+.card-guide {
+  margin: 23px 0 6px;
+  color: #6b6458;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.customer-card h2 {
+  margin: 0 0 18px;
+  font-size: 24px;
+  letter-spacing: -0.03em;
+}
+
+.summary-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 14px 0 0;
+}
+
+.summary-meta div {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 10px;
+}
+
+.summary-meta dt {
+  color: #7a7469;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.summary-meta dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+  font-weight: 700;
+  color: #2b2620;
+}
+
+.help {
+  margin: 0 16px 18px;
+  padding: 14px 16px;
+  border: 1px solid #63aee0;
+  border-radius: 10px;
+  background: #fff;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.help summary {
+  min-height: 28px;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
 }
 
 .help ol {
-  margin: 0;
+  margin: 12px 0 0;
   padding-left: 18px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
-@media (max-width: 760px) {
-  .grid {
-    grid-template-columns: 1fr;
-  }
-}
 </style>

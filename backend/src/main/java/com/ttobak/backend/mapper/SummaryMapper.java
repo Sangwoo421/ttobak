@@ -23,6 +23,9 @@ public interface SummaryMapper {
 
     int updateStatus(@Param("id") long id, @Param("status") String status);
 
+    int updateBranchTicket(@Param("id") long id, @Param("branchName") String branchName,
+                           @Param("ticketNo") int ticketNo);
+
     List<StaffSummaryListItem> findForStaff(@Param("status") String status);
 
     // ---- summary_items ----

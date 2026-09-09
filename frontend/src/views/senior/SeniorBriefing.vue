@@ -4,18 +4,18 @@ import { useRouter } from 'vue-router'
 import SeniorShell from '@/components/SeniorShell.vue'
 import ToneFrame from '@/components/ToneFrame.vue'
 import BigButton from '@/components/BigButton.vue'
-import MicButton from '@/components/MicButton.vue'
 import MicStatus from '@/components/MicStatus.vue'
+import MicButton from '@/components/MicButton.vue'
 import LevelBadge from '@/components/LevelBadge.vue'
 import { useConversation } from '@/composables/useConversation'
 import { ordinalLabel } from '@/utils/format'
-import { errorMessage } from '@/api/http'
+import { seniorErrorMessage } from '@/api/http'
 
-// 시연 2단계: POST /ai/session/start → 브리핑 글 크게 + 음성 재생 → 끝나면 버튼 3개 + 마이크.
-// 버튼/마이크를 누르면 대화 화면(/senior/chat)으로 넘어가고, 턴은 useConversation 싱글턴이 이어서 처리한다.
+// 시연 2단계: POST /ai/session/start → 브리핑 글 크게 + 음성 재생 → 끝나면 선택 버튼 2개.
+// "더 물어보기"를 누르면 대화 화면으로 이동해 음성 대화를 시작한다.
 const router = useRouter()
 const conv = useConversation()
-const { session, player, recorder } = conv
+const { session, player } = conv
 
 const loading = ref(true)
 const error = ref('')
@@ -27,7 +27,7 @@ async function load() {
   try {
     await conv.begin({ user_id: 1, onStarted: () => (loading.value = false) })
   } catch (e) {
-    error.value = errorMessage(e)
+    error.value = seniorErrorMessage(e)
   } finally {
     loading.value = false
   }
@@ -40,20 +40,16 @@ function onButton(id) {
   router.push('/senior/chat')
 }
 
+/** 브리핑을 다 듣고 바로 말할 수 있어야 한다. 버튼을 눌러 대화 화면으로 넘어간 뒤 다시
+ *  마이크를 누르게 하면 말하기까지 탭이 두 번이다. 여기서 바로 듣고 대화로 넘어간다. */
 function onMic() {
-  conv.startListening()
   router.push('/senior/chat')
-}
-
-function onStop() {
-  if (!session.hasSession) return router.push('/mock/home')
-  conv.pressButton('STOP')
-  router.push('/senior/chat')
+  conv.toggleMic()
 }
 </script>
 
 <template>
-  <SeniorShell title="들어오고 나간 돈" @stop="onStop">
+  <SeniorShell title="들어오고 나간 돈">
     <ToneFrame :tone="session.tone">
       <div class="page">
         <div v-if="error" class="error-box">
@@ -70,18 +66,18 @@ function onStop() {
             <div v-for="it in session.briefing?.items || []" :key="it.ordinal" class="item-card">
               <div class="ord">{{ ordinalLabel(it.ordinal) }}</div>
               <div class="label">{{ it.short_label }}</div>
-              <LevelBadge :level="it.level" />
+              <LevelBadge class="status" :level="it.level" />
             </div>
           </div>
 
           <p v-if="session.briefing?.remaining_count > 0" class="muted small">읽지 않은 알림이 {{ session.briefing.remaining_count }}건 더 있어요</p>
 
-          <button v-if="ready" type="button" class="replay" @click="conv.replayLast()">🔊 다시 듣기</button>
         </template>
 
         <div class="bottom">
-          <MicStatus v-if="!error" :status="conv.micStatus.value" :level="recorder.level.value" />
+          <MicStatus v-if="!error && !ready" :status="conv.micStatus.value" />
           <template v-if="ready">
+            <!-- 말하는 것이 주 수단이다. 버튼보다 위에 둔다. -->
             <MicButton :status="conv.micStatus.value" @click="onMic" />
             <BigButton v-for="b in session.mainButtons" :key="b.id" :kind="b.kind || 'secondary'" @click="onButton(b.id)">{{ b.label }}</BigButton>
           </template>
@@ -125,40 +121,39 @@ function onStop() {
 
 .item-card {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: 52px minmax(0, 1fr) 100px;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   background: var(--card);
   border-radius: var(--radius);
   padding: 16px;
   box-shadow: var(--shadow);
-  border-left: 8px solid var(--kb-yellow);
+  border-left: 8px solid #e1b52e;
 }
 
 .ord {
-  font-size: 20px;
+  font-size: var(--senior-font);
   font-weight: 900;
   color: var(--kb-brown);
 }
 
 .label {
+  min-width: 0;
   font-size: var(--senior-font);
   font-weight: 800;
+  line-height: 1.35;
   word-break: keep-all;
 }
 
-.small {
-  font-size: 18px;
+.status {
+  width: 100%;
+  box-sizing: border-box;
+  padding-inline: 6px;
+  text-align: center;
 }
 
-.replay {
-  align-self: flex-start;
-  background: none;
-  border: 0;
-  color: var(--muted);
-  font-size: 20px;
-  font-weight: 700;
-  padding: 4px 0;
+.small {
+  font-size: var(--senior-font);
 }
 
 .bottom {
@@ -167,5 +162,17 @@ function onStop() {
   flex-direction: column;
   gap: 10px;
   padding-top: 8px;
+}
+
+@media (max-width: 360px) {
+  .item-card {
+    grid-template-columns: 48px minmax(0, 1fr);
+  }
+
+  .status {
+    grid-column: 2;
+    width: 100px;
+    justify-self: start;
+  }
 }
 </style>

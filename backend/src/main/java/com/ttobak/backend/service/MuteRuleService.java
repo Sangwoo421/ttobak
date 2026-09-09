@@ -1,6 +1,7 @@
 package com.ttobak.backend.service;
 
-import com.ttobak.backend.config.BadRequestException;
+import com.ttobak.backend.config.BusinessException;
+import com.ttobak.backend.config.ErrorCode;
 import com.ttobak.backend.domain.MuteRule;
 import com.ttobak.backend.mapper.MuteRuleMapper;
 import com.ttobak.backend.provider.AuthProvider;
@@ -19,7 +20,7 @@ public class MuteRuleService {
     public MuteRule create(MuteRule rule) {
         auth.assertUser(rule.getUserId());
         if (transactions.findUser(rule.getUserId()).isEmpty()) {
-            throw new BadRequestException("unknown user_id " + rule.getUserId());
+            throw new BusinessException(ErrorCode.UNKNOWN_USER, "unknown user_id " + rule.getUserId());
         }
         rule.setCounterpartyName(rule.getCounterpartyName().trim());
         muteRuleMapper.insert(rule);

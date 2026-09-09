@@ -9,7 +9,8 @@ defineProps({
 
 <template>
   <div class="bubble-row" :class="role">
-    <div class="bubble" :class="[role, `tone-${tone}`]">
+    <div v-if="role === 'assistant'" class="avatar" aria-hidden="true">또</div>
+    <div class="bubble" :class="[role, `tone-${tone}`]" :aria-label="role === 'assistant' ? `또박또박: ${text}` : `나: ${text}`">
       <span v-if="role === 'assistant'" class="who">또박또박</span>
       <p>{{ text }}</p>
     </div>
@@ -19,6 +20,8 @@ defineProps({
 <style scoped>
 .bubble-row {
   display: flex;
+  align-items: flex-end;
+  gap: 8px;
   margin: 8px 0;
 }
 
@@ -38,6 +41,22 @@ defineProps({
   line-height: 1.45;
   box-shadow: var(--shadow);
   word-break: keep-all;
+}
+
+.avatar {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--kb-yellow);
+  color: #2b2620;
+  border: 2px solid #d4a300;
+  font-size: 22px;
+  font-weight: 900;
+  box-shadow: var(--shadow);
 }
 
 .bubble p {
@@ -65,7 +84,7 @@ defineProps({
 
 .who {
   display: block;
-  font-size: 14px;
+  font-size: var(--senior-font);
   color: var(--muted);
   margin-bottom: 4px;
   font-weight: 700;

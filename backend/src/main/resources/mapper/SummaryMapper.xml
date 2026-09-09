@@ -36,6 +36,12 @@
         UPDATE counter_summaries SET status = #{status} WHERE id = #{id}
     </update>
 
+    <update id="updateBranchTicket">
+        UPDATE counter_summaries
+        SET branch_name = #{branchName}, ticket_no = #{ticketNo}
+        WHERE id = #{id}
+    </update>
+
     <!-- 직원용 목록: 최근순, item_count 는 PREP 제외 -->
     <select id="findForStaff" resultType="com.ttobak.backend.domain.StaffSummaryListItem">
         SELECT s.id, s.code, s.ticket_no, u.name AS user_name, s.status, s.created_at,

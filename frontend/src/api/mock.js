@@ -190,7 +190,144 @@ function notFound() {
   return err
 }
 
+const MOCK_BRANCHES = [
+  {
+    id: 1,
+    name: 'KB국민은행 종로지점',
+    district: '종로구',
+    address: '서울 종로구 종로',
+    opening_hours: '평일 09:00~16:00',
+    waiting_count: 3,
+    estimated_wait_minutes: 18,
+    next_ticket_no: 15,
+  },
+  {
+    id: 2,
+    name: 'KB국민은행 광화문종합금융센터',
+    district: '종로구',
+    address: '서울 종로구 새문안로',
+    opening_hours: '평일 09:00~18:00',
+    waiting_count: 2,
+    estimated_wait_minutes: 10,
+    next_ticket_no: 24,
+  },
+  {
+    id: 3,
+    name: 'KB국민은행 서대문지점',
+    district: '서대문구',
+    address: '서울 서대문구 통일로',
+    opening_hours: '평일 09:00~16:00',
+    waiting_count: 1,
+    estimated_wait_minutes: 7,
+    next_ticket_no: 9,
+  },
+]
+
+const MOCK_TICKET_KEY = 'ttobak.mock.branchTicket'
+
+function loadBranchTicket() {
+  try {
+    const raw = localStorage.getItem(MOCK_TICKET_KEY)
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+function saveBranchTicket(ticket) {
+  try {
+    if (ticket) localStorage.setItem(MOCK_TICKET_KEY, JSON.stringify(ticket))
+    else localStorage.removeItem(MOCK_TICKET_KEY)
+  } catch {
+    /* ignore */
+  }
+  return ticket
+}
+
+function mockError(message, status = 400) {
+  const err = new Error(message)
+  err.response = { status, data: { message } }
+  return err
+}
+
 export const mockBackend = {
+  async simpleLogin({ user_id, pin }) {
+    if (Number(user_id) !== 1 || pin !== '123456') {
+      throw mockError('간편비밀번호가 올바르지 않습니다', 401)
+    }
+    return delay({
+      access_token: 'mock-session-token',
+      token_type: 'Bearer',
+      expires_in_seconds: 1800,
+      user_id: 1,
+      user_name: '김영자',
+    }, 450)
+  },
+  async getAuthSession() {
+    try {
+      const session = JSON.parse(sessionStorage.getItem('ttobak.auth.session') || 'null')
+      if (session?.access_token === 'mock-session-token') {
+        return delay({ user_id: 1, user_name: '김영자' }, 120)
+      }
+    } catch {
+      /* 아래 401 처리 */
+    }
+    throw mockError('로그인이 필요합니다', 401)
+  },
+  async logoutSession() {
+    return delay(null, 100)
+  },
+  async getBranches() {
+    return delay(MOCK_BRANCHES.map(({ next_ticket_no: _, ...branch }) => ({ ...branch })), 300)
+  },
+  async getActiveBranchTicket(userId) {
+    const ticket = loadBranchTicket()
+    if (ticket?.user_id === Number(userId) && ['WAITING', 'CALLED'].includes(ticket.status)) {
+      return delay(ticket, 200)
+    }
+    return delay(null, 200)
+  },
+  async issueBranchTicket(branchId, { user_id, summary_id, purpose }) {
+    const branch = MOCK_BRANCHES.find((item) => item.id === Number(branchId))
+    if (!branch) throw mockError('은행 지점을 찾을 수 없습니다', 404)
+    const active = loadBranchTicket()
+    if (active && ['WAITING', 'CALLED'].includes(active.status)) {
+      if (active.branch_id === branch.id) {
+        const linked = summary_id ? { ...active, summary_id: Number(summary_id), summary_code: loadSummary().code } : active
+        if (summary_id) {
+          const summary = loadSummary()
+          saveSummary({ ...summary, branch_name: branch.name, ticket_no: active.ticket_no })
+          saveBranchTicket(linked)
+        }
+        return delay(linked)
+      }
+      throw mockError('이미 사용 중인 대기표가 있습니다', 409)
+    }
+    const summary = summary_id ? loadSummary() : null
+    const ticket = saveBranchTicket({
+      id: Date.now(),
+      user_id: Number(user_id),
+      branch_id: branch.id,
+      summary_id: summary ? Number(summary_id) : null,
+      summary_code: summary?.code || null,
+      branch_name: branch.name,
+      branch_address: branch.address,
+      ticket_no: branch.next_ticket_no,
+      purpose: purpose || '일반 상담',
+      status: 'WAITING',
+      ahead_count: branch.waiting_count,
+      estimated_wait_minutes: branch.estimated_wait_minutes,
+      issued_at: new Date().toISOString(),
+    })
+    if (summary) saveSummary({ ...summary, branch_name: branch.name, ticket_no: ticket.ticket_no })
+    return delay(ticket, 450)
+  },
+  async cancelBranchTicket(ticketId) {
+    const ticket = loadBranchTicket()
+    if (!ticket || ticket.id !== Number(ticketId)) throw mockError('대기표를 찾을 수 없습니다', 404)
+    if (ticket.status !== 'WAITING') throw mockError('지금은 대기표를 취소할 수 없습니다', 409)
+    return delay(saveBranchTicket({ ...ticket, status: 'CANCELLED' }), 300)
+  },
   async briefing() {
     return delay(example('briefing'))
   },
