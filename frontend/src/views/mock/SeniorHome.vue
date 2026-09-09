@@ -38,8 +38,11 @@ function go(path, query) {
 }
 
 const openBriefing = () => go('/senior/briefing')
+// 「말로 물어보기」: 대화 화면으로 이동만 한다. 녹음은 사용자가 마이크를 눌러야 시작된다 (SeniorChat 이 처리).
 const openChat = () => go('/senior/chat', { start: 'true' })
-const openCounter = () => go('/senior/chat', { start: 'true', counter: 'true' })
+// 「창구 갈 일 정리」: 요약서를 보러 가는 버튼. 세션을 새로 시작하지 않는다(start 없음) —
+// 담아 둔 항목이 있으면 그대로 요약서로, 없으면 안내만. 이 경로로는 녹음이 시작되지 않는다.
+const openCounter = () => go('/senior/chat', { counter: 'true' })
 const readOne = (it) => go('/senior/chat', { tx: String(it.transaction.id) })
 
 function when(tx) {

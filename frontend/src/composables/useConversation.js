@@ -29,7 +29,34 @@ function showToast(text, ms = 2500) {
   toastTimer = setTimeout(() => (toast.value = ''), ms)
 }
 
+// 창구 목록에 담긴 항목은 role='counter' 메시지로 대화 흐름에 남는다.
+// SpeechBubble/SeniorChat 을 건드리지 않고 말풍선과 구분(테두리·배경)을 주기 위해
+// 전역 스타일을 한 번만 주입한다. 어르신 모드 글자 크기(--senior-font, 22px)와 고대비를 따른다.
+function ensureCounterCardStyle() {
+  if (typeof document === 'undefined' || document.getElementById('ttobak-counter-card-style')) return
+  const el = document.createElement('style')
+  el.id = 'ttobak-counter-card-style'
+  el.textContent = `
+    .bubble-row.counter { justify-content: center; }
+    .bubble-row.counter .bubble.counter {
+      max-width: 100%;
+      width: 100%;
+      background: var(--kb-yellow-soft);
+      border: 3px solid var(--kb-yellow-dark);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-size: var(--senior-font);
+      font-weight: 700;
+      line-height: 1.5;
+      box-shadow: var(--shadow);
+    }
+    .bubble-row.counter .bubble.counter p { white-space: pre-wrap; margin: 0; }
+  `
+  document.head.appendChild(el)
+}
+
 export function useConversation() {
+  ensureCounterCardStyle()
   const session = useSessionStore()
   const recorder = useRecorder()
   const player = useAudioPlayer()
@@ -89,7 +116,9 @@ export function useConversation() {
           return
         case 'ADD_QUESTION':
         case 'ADD_REQUEST':
-          showToast('창구 목록에 적어뒀어요')
+          // 대화 화면에 사라지지 않는 카드로 남긴다. 토스트는 짧게 같이 띄운다(즉시 확인용).
+          session.addCounterItem(action)
+          showToast('창구 목록에 담았어요')
           break
         case 'MUTE':
           showToast('다음부터는 읽지 않을게요')
